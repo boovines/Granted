@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from './components/ui/resizable';
 import { Toaster } from './components/ui/sonner';
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import Explorer, { ExplorerFile, FileCreationOptions } from './components/Explorer';
 import TabbedWorkspace, { WorkspaceTab } from './components/TabbedWorkspace';
 import AssistantChat from './components/AssistantChat';
+import { LoginButton, UserProfile, initializeOAuth } from '../oauth/integration/vite';
+import AuthDebug from '../oauth/components/AuthDebug';
 
 interface ChatMessage {
   id: string;
@@ -21,6 +23,31 @@ interface ChatMessage {
 }
 
 export default function App() {
+  // Initialize OAuth
+  useEffect(() => {
+    initializeOAuth();
+  }, []);
+
+  // Check for successful OAuth callback and show welcome message
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+    
+    // If we have OAuth parameters, we just came back from OAuth
+    if (code && state) {
+      // Clear the URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // Show welcome message after a brief delay
+      setTimeout(() => {
+        toast.success("Welcome! You're now signed in. 🎉", {
+          duration: 4000,
+        });
+      }, 1000);
+    }
+  }, []);
+
   // Sample data
   const [files, setFiles] = useState<ExplorerFile[]>([
     {
@@ -450,7 +477,18 @@ export default function App() {
 
   return (
     <div className="h-screen w-full bg-app-navy overflow-hidden">
-      <ResizablePanelGroup direction="horizontal" className="h-full">
+      {/* Header with OAuth components */}
+      <div className="h-12 bg-app-navy-light border-b border-app-sand/20 flex items-center justify-between px-4">
+        <div className="flex items-center space-x-4">
+          <h1 className="text-lg font-semibold text-app-gold">Academic Writing IDE</h1>
+        </div>
+        <div className="flex items-center space-x-3 transition-all duration-300">
+          <LoginButton />
+          <UserProfile />
+        </div>
+      </div>
+      
+      <ResizablePanelGroup direction="horizontal" className="h-[calc(100vh-3rem)]">
         {/* Left Panel - Explorer */}
         <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
           <Explorer
@@ -504,6 +542,9 @@ export default function App() {
           },
         }}
       />
+      
+      {/* Debug component for development */}
+      <AuthDebug />
     </div>
   );
 }
