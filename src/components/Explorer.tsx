@@ -42,13 +42,14 @@ interface FileDragItem {
 }
 
 // Draggable file item component
-const DraggableFileItem: React.FC<{
+const DraggableFileItem = ({ file, isSelected, onFileSelect, onFileAction, getFileIcon, ...props }: {
   file: ExplorerFile;
   isSelected: boolean;
   onFileSelect: (file: ExplorerFile) => void;
   onFileAction: (action: 'rename' | 'delete' | 'move', file: ExplorerFile) => void;
-  getFileIcon: (type: ExplorerFile['type']) => React.ReactNode;
-}> = ({ file, isSelected, onFileSelect, onFileAction, getFileIcon }) => {
+  getFileIcon: (type: ExplorerFile['type']) => any;
+  [key: string]: any;
+}) => {
   const [{ isDragging }, drag] = useDrag({
     type: FILE_ITEM_TYPE,
     item: { id: file.id, file },
@@ -102,19 +103,7 @@ const DraggableFileItem: React.FC<{
 };
 
 // Droppable category section component
-const DroppableCategorySection: React.FC<{
-  category: 'Documents' | 'Sources' | 'Context';
-  files: ExplorerFile[];
-  isExpanded: boolean;
-  selectedFileId?: string;
-  onToggleFolder: (folder: string) => void;
-  onFileSelect: (file: ExplorerFile) => void;
-  onFileAction: (action: 'rename' | 'delete' | 'move', file: ExplorerFile) => void;
-  onAddFile: (options: FileCreationOptions) => void;
-  onFileMoveToCategory: (fileId: string, targetCategory: 'Documents' | 'Sources' | 'Context') => void;
-  getFileIcon: (type: ExplorerFile['type']) => React.ReactNode;
-  getFileTypeOptions: (category: 'Documents' | 'Sources' | 'Context') => any[];
-}> = ({ 
+const DroppableCategorySection = ({ 
   category, 
   files: categoryFiles, 
   isExpanded,
@@ -124,8 +113,22 @@ const DroppableCategorySection: React.FC<{
   onFileAction,
   onAddFile,
   onFileMoveToCategory,
+  onUploadClick,
   getFileIcon,
   getFileTypeOptions
+}: {
+  category: 'Documents' | 'Sources' | 'Context';
+  files: ExplorerFile[];
+  isExpanded: boolean;
+  selectedFileId?: string;
+  onToggleFolder: (folder: string) => void;
+  onFileSelect: (file: ExplorerFile) => void;
+  onFileAction: (action: 'rename' | 'delete' | 'move', file: ExplorerFile) => void;
+  onAddFile: (options: FileCreationOptions) => void;
+  onFileMoveToCategory: (fileId: string, targetCategory: 'Documents' | 'Sources' | 'Context') => void;
+  onUploadClick: (category: 'Documents' | 'Sources' | 'Context') => void;
+  getFileIcon: (type: ExplorerFile['type']) => any;
+  getFileTypeOptions: (category: 'Documents' | 'Sources' | 'Context') => any[];
 }) => {
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: FILE_ITEM_TYPE,
@@ -178,7 +181,7 @@ const DroppableCategorySection: React.FC<{
             onClick={(e) => e.stopPropagation()}
           >
             <DropdownMenuItem 
-              onClick={() => onAddFile({ category, action: 'upload' })}
+              onClick={() => onUploadClick(category)}
               className="hover:bg-app-sand/30 cursor-pointer"
             >
               <Upload className="w-4 h-4 mr-2" />
@@ -241,7 +244,7 @@ const DroppableCategorySection: React.FC<{
   );
 };
 
-const Explorer: React.FC<ExplorerProps> = ({ 
+const Explorer = ({ 
   files, 
   onFileSelect, 
   selectedFileId,
@@ -249,10 +252,61 @@ const Explorer: React.FC<ExplorerProps> = ({
   onAddFile,
   onFileMoveToCategory,
   className = '' 
-}) => {
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
+}: ExplorerProps) => {
+  const [expandedFolders, setExpandedFolders] = useState(
     new Set(['Documents', 'Sources', 'Context'])
   );
+
+  const handleUploadClick = (category: 'Documents' | 'Sources' | 'Context') => {
+    if (category === 'Sources') {
+      // For Sources, directly open file explorer with PDF and DOCX filter
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.multiple = true;
+      fileInput.accept = '.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      
+      fileInput.onchange = (e) => {
+        const files = (e.target as HTMLInputElement).files;
+        if (files && files.length > 0) {
+          handleFileUpload(Array.from(files), 'Sources');
+        }
+      };
+      
+      fileInput.click();
+    } else {
+      // For other categories, use the existing onAddFile
+      onAddFile({ category, action: 'upload' });
+    }
+  };
+
+  const handleFileUpload = (uploadedFiles: File[], category: 'Documents' | 'Sources' | 'Context') => {
+    // Convert uploaded files to ExplorerFile format and add them
+    uploadedFiles.forEach(file => {
+      const fileId = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const extension = file.name.split('.').pop()?.toLowerCase() || '';
+      
+      // Create a mock ExplorerFile for display
+      const explorerFile: ExplorerFile = {
+        id: fileId,
+        name: file.name,
+        type: category === 'Sources' ? 'source' : category === 'Context' ? 'context' : 'document',
+        category: category,
+        content: `[UPLOADED] ${file.name} (${Math.round(file.size / 1024)}KB)`,
+        lastModified: new Date(),
+        path: `/${category}/${file.name}`,
+        extension: extension
+      };
+
+      console.log('File uploaded:', explorerFile);
+      
+      // Call onAddFile to add to the explorer
+      onAddFile({
+        category: category,
+        action: 'upload',
+        fileType: extension as any
+      });
+    });
+  };
 
   const toggleFolder = (folder: string) => {
     const newExpanded = new Set(expandedFolders);
@@ -332,6 +386,7 @@ const Explorer: React.FC<ExplorerProps> = ({
             onFileAction={onFileAction}
             onAddFile={onAddFile}
             onFileMoveToCategory={onFileMoveToCategory}
+            onUploadClick={handleUploadClick}
             getFileIcon={getFileIcon}
             getFileTypeOptions={getFileTypeOptions}
           />
@@ -345,6 +400,7 @@ const Explorer: React.FC<ExplorerProps> = ({
             onFileAction={onFileAction}
             onAddFile={onAddFile}
             onFileMoveToCategory={onFileMoveToCategory}
+            onUploadClick={handleUploadClick}
             getFileIcon={getFileIcon}
             getFileTypeOptions={getFileTypeOptions}
           />
@@ -358,6 +414,7 @@ const Explorer: React.FC<ExplorerProps> = ({
             onFileAction={onFileAction}
             onAddFile={onAddFile}
             onFileMoveToCategory={onFileMoveToCategory}
+            onUploadClick={handleUploadClick}
             getFileIcon={getFileIcon}
             getFileTypeOptions={getFileTypeOptions}
           />

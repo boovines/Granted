@@ -13,11 +13,11 @@ interface ContextPickerProps {
   onFilesChange: (files: ExplorerFile[]) => void;
   isPinned: boolean;
   onPinnedChange: (pinned: boolean) => void;
-  trigger?: React.ReactNode;
+  trigger?: any;
   className?: string;
 }
 
-const ContextPicker: React.FC<ContextPickerProps> = ({
+const ContextPicker = ({
   files,
   selectedFiles,
   onFilesChange,
@@ -25,7 +25,7 @@ const ContextPicker: React.FC<ContextPickerProps> = ({
   onPinnedChange,
   trigger,
   className = ''
-}) => {
+}: ContextPickerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -122,10 +122,9 @@ const ContextPicker: React.FC<ContextPickerProps> = ({
     );
   };
 
-  // Create a properly forwarded trigger component
-  const TriggerComponent = forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>((props, ref) => (
+  // Create a trigger component
+  const TriggerComponent = (props: any) => (
     <Button
-      ref={ref}
       variant="outline"
       size="sm"
       className="border-app-gold text-app-gold hover:bg-app-gold/10 focus-visible:ring-app-gold"
@@ -133,7 +132,7 @@ const ContextPicker: React.FC<ContextPickerProps> = ({
     >
       @ Context
     </Button>
-  ));
+  );
 
   return (
     <div className={className}>
@@ -163,7 +162,7 @@ const ContextPicker: React.FC<ContextPickerProps> = ({
 
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
-          {trigger ? React.cloneElement(trigger as React.ReactElement, {}) : <TriggerComponent />}
+          {trigger || <TriggerComponent />}
         </PopoverTrigger>
         <PopoverContent 
           className="w-80 p-0 bg-app-white border-app-sand"
