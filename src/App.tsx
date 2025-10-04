@@ -102,22 +102,12 @@ export default function App() {
     },
     {
       id: '6',
-      name: 'Thesis Requirements.md',
+      name: 'Research Rules.md',
       type: 'context',
       category: 'Context',
-      content: '# Thesis Requirements\n\n- 50-80 pages\n- APA format\n- Original research required',
+      content: '# Research Rules & Guidelines\n\n## Writing Standards\n- Use clear, concise language\n- Maintain academic tone throughout\n- Follow APA citation format\n- Include proper references for all claims\n\n## Content Requirements\n- Original research and analysis required\n- Minimum 50-80 pages for thesis\n- Include methodology section\n- Provide evidence-based conclusions\n\n## Formatting Guidelines\n- Double-spaced text\n- 12pt Times New Roman font\n- 1-inch margins on all sides\n- Page numbers in top-right corner\n\n## Review Process\n- Self-review before submission\n- Check for grammar and spelling\n- Verify all citations are complete\n- Ensure logical flow and structure',
       lastModified: new Date('2024-01-08'),
-      path: '/Context/Thesis Requirements.md',
-      extension: 'md'
-    },
-    {
-      id: '7',
-      name: 'Writing Style Guide.md',
-      type: 'context',
-      category: 'Context',
-      content: '# Writing Style Guidelines\n\n- Clear, concise prose\n- Academic tone\n- Proper citations',
-      lastModified: new Date('2024-01-09'),
-      path: '/Context/Writing Style Guide.md',
+      path: '/Context/Research Rules.md',
       extension: 'md'
     }
   ]);
