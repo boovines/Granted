@@ -469,9 +469,9 @@ export default function App() {
   return (
     <div className="h-screen w-full bg-app-navy overflow-hidden">
       {/* Header with OAuth components */}
-      <div className="h-16 bg-app-gold border-b border-app-sand/20 flex items-center justify-between px-4">
+      <div className="h-32 bg-app-gold border-b border-app-sand/20 flex items-center justify-between px-4">
         <div className="flex items-center space-x-4">
-          <h1 className="text-lg font-bold text-app-navy" style={{ fontSize: '1.5em' }}>
+          <h1 className="text-xl font-bold text-app-navy" style={{ fontSize: '1.5em', fontWeight: 'bold' }}>
             Granted: Academic Writing IDE
           </h1>
         </div>
@@ -481,7 +481,7 @@ export default function App() {
         </div>
       </div>
       
-      <ResizablePanelGroup direction="horizontal" className="h-[calc(100vh-3rem)]">
+      <ResizablePanelGroup direction="horizontal" className="h-[calc(100vh-8rem)]">
         {/* Left Panel - Explorer */}
         <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
           <Explorer
@@ -495,10 +495,10 @@ export default function App() {
           />
         </ResizablePanel>
 
-        <ResizableHandle className="w-1 bg-app-sand hover:bg-app-gold transition-colors" />
+        <ResizableHandle className="w-3 bg-app-sand hover:bg-app-gold transition-colors" />
 
         {/* Middle Panel - Tabbed Workspace */}
-        <ResizablePanel defaultSize={50} minSize={30}>
+        <ResizablePanel defaultSize={45} minSize={25}>
           <TabbedWorkspace
             tabs={tabs}
             onTabClose={handleTabClose}
@@ -510,10 +510,10 @@ export default function App() {
           />
         </ResizablePanel>
 
-        <ResizableHandle className="w-1 bg-app-sand hover:bg-app-gold transition-colors" />
+        <ResizableHandle className="w-3 bg-app-sand hover:bg-app-gold transition-colors" />
 
         {/* Right Panel - Assistant Chat */}
-        <ResizablePanel defaultSize={30} minSize={25} maxSize={40}>
+        <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
           <AssistantChat
             files={files}
             messages={messages}

@@ -162,9 +162,9 @@ const AssistantChat: React.FC<AssistantChatProps> = ({
   );
 
   return (
-    <div className={`bg-app-white h-full flex flex-col border-l border-app-sand ${className}`}>
+    <div className={`bg-app-white h-full flex flex-col border-l border-app-sand border-b border-app-sand overflow-hidden ${className}`}>
       {/* Header */}
-      <div className="p-4 border-b border-app-sand bg-app-sand/30">
+      <div className="p-4 border-b border-app-sand bg-app-sand/30 flex-shrink-0">
         <h3 className="font-medium text-app-navy">Research Assistant</h3>
         <p className="text-xs text-app-navy/60 mt-1">
           Use @ to attach context files for better responses
@@ -172,7 +172,7 @@ const AssistantChat: React.FC<AssistantChatProps> = ({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea className="flex-1 p-4 overflow-y-auto">
         {messages.length === 0 ? (
           <div className="h-full flex items-center justify-center text-center">
             <div className="text-app-navy/50">
@@ -206,7 +206,7 @@ const AssistantChat: React.FC<AssistantChatProps> = ({
       </ScrollArea>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-app-sand">
+      <div className="p-4 border-t border-app-sand border-b border-app-sand flex-shrink-0 bg-app-white">
         <div className="mb-2">
           <ContextPicker
             files={files}

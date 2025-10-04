@@ -237,7 +237,7 @@ const DocumentEditor = memo(
             onInput={handleInput}
             onMouseDown={handleMouseDown}
             onMouseUp={handleTextSelection}
-            className="h-full min-h-[300px] bg-white border border-app-sand rounded-lg p-6 outline-none focus:ring-2 focus:ring-app-gold/40"
+            className="h-full min-h-[300px] bg-white border-[3px] border-app-sand rounded-lg p-8 outline-none focus:ring-2 focus:ring-app-gold/40"
           />
 
           {/* Translucent single-button popup */}
@@ -295,9 +295,9 @@ const TabbedWorkspace: React.FC<TabbedWorkspaceProps> = ({
   const activeTab = tabs.find((t) => t.isActive);
 
   return (
-    <div className={`bg-app-white h-full flex flex-col ${className}`}>
+    <div className={`bg-app-white h-full flex flex-col border-b border-app-sand ${className}`}>
       {/* Tab Bar */}
-      <div className="bg-app-sand border-b border-app-sand/50 flex items-center">
+      <div className="bg-app-sand border-b border-app-sand/50 flex items-center pt-2">
         {tabs.length === 0 ? (
           <div className="flex-1 p-4 text-center text-app-navy/50">
             Open a file from the Explorer to start working
