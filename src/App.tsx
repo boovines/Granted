@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import Explorer, { ExplorerFile, FileCreationOptions } from './components/Explorer';
 import TabbedWorkspace, { WorkspaceTab } from './components/TabbedWorkspace';
 import AssistantChat from './components/AssistantChat';
-import { LoginButton, UserProfile, initializeOAuth } from '../oauth/integration/vite';
+import { LoginButton, initializeOAuth } from '../oauth/integration/vite';
+import { UserProfile } from '../oauth/components/UserProfile';
 import AuthDebug from '../oauth/components/AuthDebug';
 
 interface ChatMessage {
@@ -487,6 +488,17 @@ export default function App() {
           <UserProfile />
         </div>
       </div>
+
+      <button 
+        onClick={async () => {
+          const { authService } = await import('../oauth/auth');
+          await authService.signOut();
+          window.location.reload();
+        }}
+        className="px-3 py-1 bg-red-500 text-white rounded text-sm"
+      >
+        Test Logout
+      </button>
       
       <ResizablePanelGroup direction="horizontal" className="h-[calc(100vh-3rem)]">
         {/* Left Panel - Explorer */}

@@ -9,6 +9,7 @@ interface UserProfileProps {
 export function UserProfile({ className = '' }: UserProfileProps) {
   const { user, signOut, isLoading } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
 
   // Show loading state while checking authentication
   if (isLoading) {
@@ -27,16 +28,21 @@ export function UserProfile({ className = '' }: UserProfileProps) {
   if (!user) return null
 
   const handleSignOut = async () => {
+    setIsSigningOut(true)
     try {
       await signOut()
       setIsOpen(false)
+      // Force a page reload to reset all state
+      window.location.reload()
     } catch (error) {
       console.error('Sign out error:', error)
+      setIsSigningOut(false)
     }
   }
 
   return (
-    <div className={`relative animate-in fade-in duration-300 ${className}`}>
+    <div className={`relative z-50 animate-in fade-in duration-300 ${className}`}>
+      {/* Profile Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-3 p-2 rounded-lg hover:bg-app-sand/20 transition-colors"
@@ -75,32 +81,36 @@ export function UserProfile({ className = '' }: UserProfileProps) {
         </svg>
       </button>
 
+      {/* Dropdown Menu */}
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop to close menu */}
           <div
-            className="fixed inset-0 z-10"
+            className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
           
-          {/* Dropdown */}
-          <div className="absolute right-0 mt-2 w-64 bg-app-navy-light rounded-lg shadow-lg border border-app-sand/20 z-20">
-            <div className="p-4 border-b border-app-sand/20">
-              <p className="text-sm font-medium text-app-white">{user.name}</p>
-              <p className="text-sm text-app-sand">{user.email}</p>
-              <p className="text-xs text-app-sand/70 mt-1">
+          {/* Dropdown Content */}
+          <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+            {/* User Info */}
+            <div className="p-4 border-b border-gray-200">
+              <p className="text-sm font-medium text-gray-900">{user.name}</p>
+              <p className="text-sm text-gray-600 break-all">{user.email}</p>
+              <p className="text-xs text-gray-500 mt-1 capitalize">
                 Signed in with {user.provider}
               </p>
             </div>
             
-            <div className="p-2">
+            {/* Actions */}
+            <div className="p-2 bg-white">
               <button
                 onClick={handleSignOut}
-                disabled={isLoading}
-                className="w-full flex items-center px-3 py-2 text-sm text-app-white hover:bg-app-sand/20 rounded-md transition-colors disabled:opacity-50"
+                disabled={isSigningOut}
+                type="button"
+                className="w-full flex items-center px-3 py-2.5 text-sm font-medium text-gray-900 hover:bg-gray-100 active:bg-gray-200 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <svg
-                  className="w-4 h-4 mr-3"
+                  className="w-4 h-4 mr-3 flex-shrink-0 text-gray-500"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -112,7 +122,9 @@ export function UserProfile({ className = '' }: UserProfileProps) {
                     d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                   />
                 </svg>
-                {isLoading ? 'Signing out...' : 'Sign out'}
+                <span className="flex-1 text-left text-gray-900 font-semibold">
+                  {isSigningOut ? 'Signing out...' : 'Sign out'}
+                </span>
               </button>
             </div>
           </div>
