@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from './components/ui/resizable';
 import { Toaster } from './components/ui/sonner';
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import Explorer, { ExplorerFile, FileCreationOptions } from './components/Explorer';
 import TabbedWorkspace, { WorkspaceTab } from './components/TabbedWorkspace';
 import AssistantChat from './components/AssistantChat';
