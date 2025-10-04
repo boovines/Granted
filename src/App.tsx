@@ -469,26 +469,17 @@ export default function App() {
   return (
     <div className="h-screen w-full bg-app-navy overflow-hidden">
       {/* Header with OAuth components */}
-      <div className="h-12 bg-app-navy-light border-b border-app-sand/20 flex items-center justify-between px-4">
+      <div className="h-16 bg-app-gold border-b border-app-sand/20 flex items-center justify-between px-4">
         <div className="flex items-center space-x-4">
-          <h1 className="text-lg font-semibold text-app-gold">Academic Writing IDE</h1>
+          <h1 className="text-lg font-bold text-app-navy" style={{ fontSize: '1.5em' }}>
+            Granted: Academic Writing IDE
+          </h1>
         </div>
         <div className="flex items-center space-x-3 transition-all duration-300">
-          <LoginButton />
+          <LoginButton className="bg-app-navy text-app-sand hover:bg-app-navy/90" />
           <UserProfile />
         </div>
       </div>
-
-      <button 
-        onClick={async () => {
-          const { authService } = await import('../oauth/auth');
-          await authService.signOut();
-          window.location.reload();
-        }}
-        className="px-3 py-1 bg-red-500 text-white rounded text-sm"
-      >
-        Test Logout
-      </button>
       
       <ResizablePanelGroup direction="horizontal" className="h-[calc(100vh-3rem)]">
         {/* Left Panel - Explorer */}
