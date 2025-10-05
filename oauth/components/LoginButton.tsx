@@ -43,7 +43,7 @@ export function LoginButton({
     loginWithProvider('google')
   }
 
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none'
+  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none cursor-pointer hover:scale-105'
   
   const variantClasses = {
     primary: 'bg-app-gold text-app-navy hover:bg-app-gold/90 focus:ring-app-gold',

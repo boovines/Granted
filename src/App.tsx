@@ -427,7 +427,7 @@ export default function App() {
       {/* Header with OAuth components */}
       <div className="h-32 bg-app-gold border-b border-app-sand/20 flex items-center justify-between px-4">
         <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-bold text-app-navy" style={{ fontSize: '1.5em', fontWeight: 'bold' }}>
+          <h1 className="text-xl font-bold text-app-navy" style={{ fontSize: '1.5em', fontWeight: 'bold', fontFamily: 'Coolvetica, Arial, sans-serif' }}>
             Granted: Academic Writing IDE
           </h1>
           {supaLoading ? <div className="w-4 h-4 border-2 border-app-navy border-t-transparent rounded-full animate-spin" /> : null}

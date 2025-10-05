@@ -114,15 +114,16 @@ export default function LandingPage({ onNavigateToLogin, onNavigateToApp }: Land
               style={{ 
                 fontSize: '2rem',
                 color: '#C4B998',
-                fontFamily: 'Coolvetica, Arial, sans-serif',
+                fontFamily: 'Georgia, "Times New Roman", serif',
                 fontWeight: '400',
+                fontStyle: 'italic',
                 letterSpacing: '0.02em'
               }}
             >
               An academic writing IDE
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center" style={{ marginTop: '2rem' }}>
               <button
                 className="px-12 py-4 text-xl font-medium rounded-xl transition-all"
                 style={{
@@ -182,29 +183,32 @@ export default function LandingPage({ onNavigateToLogin, onNavigateToApp }: Land
           style={{ backgroundColor: '#2C3E50' }}
         >
           <div className="max-w-4xl mx-auto text-center px-16" style={{ marginTop: '-8rem' }}>
-            <h2 
+            <h2
               className="font-bold mb-8"
-              style={{ 
+              style={{
                 fontSize: '5rem',
                 color: '#C4B998',
-                fontFamily: 'Coolvetica, Arial, sans-serif',
-                fontWeight: '700'
+                fontFamily: 'Inter, "Helvetica Neue", Arial, sans-serif',
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
               }}
             >
               Our Vision
             </h2>
-            <p 
-              style={{ 
-                fontSize: '2.5rem',
-                color: '#C4B998',
-                fontFamily: 'Coolvetica, Arial, sans-serif',
-                fontWeight: '400',
-                lineHeight: '1.4'
-              }}
-            >
-              Discover, draft, and ship grant proposals 10 times faster than ever before <br />
-              so you can focus on the issues that truly matter.
-            </p>
+                    <p
+                      style={{
+                        fontSize: '2.5rem',
+                        color: '#C4B998',
+                        fontFamily: 'Georgia, "Times New Roman", serif',
+                        fontWeight: '400',
+                        fontStyle: 'italic',
+                        lineHeight: '1.4'
+                      }}
+                    >
+                      Discover, draft, and ship grant proposals 10 times faster than ever before <br />
+                      so you can focus on the issues that truly matter.
+                    </p>
           </div>
 
           {currentSection === 1 && (
@@ -232,14 +236,16 @@ export default function LandingPage({ onNavigateToLogin, onNavigateToApp }: Land
           className="h-screen w-full relative flex items-center justify-center"
           style={{ backgroundColor: '#354458' }}
         >
-          <div className="max-w-6xl mx-auto text-center px-8">
-            <h2 
+          <div className="max-w-6xl mx-auto text-center px-8" style={{ marginTop: '-80px' }}>
+            <h2
               className="font-bold mb-12"
-              style={{ 
+              style={{
                 fontSize: '5rem',
                 color: '#C4B998',
-                fontFamily: 'Coolvetica, Arial, sans-serif',
-                fontWeight: '700'
+                fontFamily: 'Inter, "Helvetica Neue", Arial, sans-serif',
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
               }}
             >
               Our Team
@@ -255,62 +261,66 @@ export default function LandingPage({ onNavigateToLogin, onNavigateToApp }: Land
             </div>
 
             <div className="flex justify-center" style={{ marginTop: '3rem' }}>
-              <div style={{ width: '200px', textAlign: 'center', marginRight: '40px' }}>
-                <h3 
-                  className="font-medium"
-                  style={{ 
-                    fontSize: '1.75rem',
-                    color: '#C4B998',
-                    fontFamily: 'Coolvetica, Arial, sans-serif',
-                    fontWeight: '500',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  Jake Li
-                </h3>
-              </div>
-              <div style={{ width: '200px', textAlign: 'center', marginRight: '40px' }}>
-                <h3 
-                  className="font-medium"
-                  style={{ 
-                    fontSize: '1.75rem',
-                    color: '#C4B998',
-                    fontFamily: 'Coolvetica, Arial, sans-serif',
-                    fontWeight: '500',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  Toby Thurston
-                </h3>
-              </div>
-              <div style={{ width: '200px', textAlign: 'center', marginRight: '40px' }}>
-                <h3 
-                  className="font-medium"
-                  style={{ 
-                    fontSize: '1.75rem',
-                    color: '#C4B998',
-                    fontFamily: 'Coolvetica, Arial, sans-serif',
-                    fontWeight: '500',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  Jessica Wang
-                </h3>
-              </div>
-              <div style={{ width: '200px', textAlign: 'center' }}>
-                <h3 
-                  className="font-medium"
-                  style={{ 
-                    fontSize: '1.75rem',
-                    color: '#C4B998',
-                    fontFamily: 'Coolvetica, Arial, sans-serif',
-                    fontWeight: '500',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  Justin Hou
-                </h3>
-              </div>
+                      <div style={{ width: '200px', textAlign: 'center', marginRight: '40px' }}>
+                        <h3
+                          className="font-medium"
+                          style={{
+                            fontSize: '1.75rem',
+                            color: '#C4B998',
+                            fontFamily: 'Georgia, "Times New Roman", serif',
+                            fontWeight: '500',
+                            fontStyle: 'italic',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          Jake Li
+                        </h3>
+                      </div>
+                      <div style={{ width: '200px', textAlign: 'center', marginRight: '40px' }}>
+                        <h3
+                          className="font-medium"
+                          style={{
+                            fontSize: '1.75rem',
+                            color: '#C4B998',
+                            fontFamily: 'Georgia, "Times New Roman", serif',
+                            fontWeight: '500',
+                            fontStyle: 'italic',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          Toby Thurston
+                        </h3>
+                      </div>
+                      <div style={{ width: '200px', textAlign: 'center', marginRight: '40px' }}>
+                        <h3
+                          className="font-medium"
+                          style={{
+                            fontSize: '1.75rem',
+                            color: '#C4B998',
+                            fontFamily: 'Georgia, "Times New Roman", serif',
+                            fontWeight: '500',
+                            fontStyle: 'italic',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          Jessica Wang
+                        </h3>
+                      </div>
+                      <div style={{ width: '200px', textAlign: 'center' }}>
+                        <h3
+                          className="font-medium"
+                          style={{
+                            fontSize: '1.75rem',
+                            color: '#C4B998',
+                            fontFamily: 'Georgia, "Times New Roman", serif',
+                            fontWeight: '500',
+                            fontStyle: 'italic',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          Justin Hou
+                        </h3>
+                      </div>
             </div>
           </div>
         </section>
