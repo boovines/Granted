@@ -48,6 +48,7 @@ export interface ExplorerFile {
   lastModified: Date;
   path: string;
   extension?: string;
+  publicUrl?: string; // ⬅️ add this
 }
 
 export interface FileCreationOptions {

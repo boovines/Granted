@@ -5,18 +5,14 @@ import { Separator } from "./ui/separator";
 import { ExplorerFile } from "./Explorer";
 import { saveToBackend } from "../utils/saveToBackend";
 import { rephraseText } from "../utils/rephrase";
+import { supabase } from "../config/supabaseClient";
 
 export interface WorkspaceTab {
   id: string;
   file: ExplorerFile;
   isActive: boolean;
   isDirty: boolean;
-}
-
-declare global {
-  interface Window {
-    lastSaveTime?: number;
-  }
+  isEditable?: boolean;
 }
 
 interface TabbedWorkspaceProps {
@@ -27,7 +23,17 @@ interface TabbedWorkspaceProps {
   className?: string;
 }
 
-/* ---------------- Tab Button ---------------- */
+/* ---------------- Helpers ---------------- */
+
+function buildPublicUrl(path: string) {
+  return supabase.storage.from("documents").getPublicUrl(path).data.publicUrl;
+}
+
+function getExt(file?: ExplorerFile) {
+  return (file?.extension || file?.name.split(".").pop() || "").toLowerCase();
+}
+
+/* ---------------- Simple Tab Button ---------------- */
 const SimpleTab: React.FC<{
   tab: WorkspaceTab;
   onTabSelect: (tabId: string) => void;
@@ -36,9 +42,7 @@ const SimpleTab: React.FC<{
   <div
     onClick={() => onTabSelect(tab.id)}
     className={`flex items-center gap-2 px-3 py-2 border-r border-app-sand/50 cursor-pointer transition-all ${
-      tab.isActive
-        ? "bg-app-navy text-white"
-        : "bg-app-sand hover:bg-app-sand/70 text-app-navy"
+      tab.isActive ? "bg-app-navy text-white" : "bg-app-sand hover:bg-app-sand/70 text-app-navy"
     }`}
   >
     <FileText className="w-3 h-3" />
@@ -60,7 +64,50 @@ const SimpleTab: React.FC<{
   </div>
 );
 
-/* ---------------- Editor ---------------- */
+/* ---------------- PDF Viewer ---------------- */
+const PdfView = ({ url, title }: { url: string; title?: string }) => {
+  const src = `${url}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`;
+  return (
+    <div className="w-full h-full bg-white">
+      <iframe title={title || "PDF"} src={src} className="w-full h-full" style={{ border: 0 }} />
+    </div>
+  );
+};
+
+/* ---------------- HTML Viewer ---------------- */
+const HtmlView = ({ url, title }: { url: string; title?: string }) => {
+  return (
+    <div className="w-full h-full bg-white">
+      <iframe
+        title={title || "HTML"}
+        src={url}
+        className="w-full h-full"
+        style={{ border: 0 }}
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+      />
+    </div>
+  );
+};
+
+/* ---------------- Readonly Fallback ---------------- */
+const ReadonlyView = ({ file }: { file: ExplorerFile }) => {
+  const url = file.publicUrl || buildPublicUrl(file.path);
+  return (
+    <div className="h-full w-full flex flex-col items-center justify-center text-app-navy/70 gap-3">
+      <p>Preview not available for this type</p>
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className="underline text-app-navy hover:text-app-gold"
+      >
+        Open or download {file.name}
+      </a>
+    </div>
+  );
+};
+
+/* ---------------- Rich Text Editor ---------------- */
 const DocumentEditor = memo(
   ({
     tab,
@@ -70,24 +117,54 @@ const DocumentEditor = memo(
     onContentChange: (tabId: string, html: string) => void;
   }) => {
     const editorRef = useRef<HTMLDivElement | null>(null);
-    const wrapperRef = useRef<HTMLDivElement | null>(null); // positioned ancestor
-    const lastRangeRef = useRef<Range | null>(null); // preserve selection across button click
+    const wrapperRef = useRef<HTMLDivElement | null>(null);
+    const lastRangeRef = useRef<Range | null>(null);
+    const saveTimerRef = useRef<number | null>(null);
 
-    const [html, setHtml] = useState(tab.file.content || "<p>Start typing...</p>");
     const [wordCount, setWordCount] = useState(0);
     const [charCount, setCharCount] = useState(0);
-    const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+    const [saveStatus, setSaveStatus] =
+      useState<"idle" | "saving" | "saved" | "error">("idle");
     const [rephrasePrompt, setRephrasePrompt] = useState<{
       x: number;
       y: number;
       text: string;
     } | null>(null);
 
-    useEffect(() => {
-      const el = editorRef.current;
-      if (el) el.innerHTML = html;
+    // mark local edits so prop echoes do not stomp caret
+    const isLocalEditRef = useRef(false);
+
+    const setHTML = (html: string) => {
+      if (!editorRef.current) return;
+      editorRef.current.innerHTML = html;
       recomputeCounts();
-    }, []);
+    };
+
+    const saveSelection = () => {
+      const s = window.getSelection();
+      if (s && s.rangeCount > 0) lastRangeRef.current = s.getRangeAt(0);
+    };
+
+    const restoreSelection = () => {
+      const s = window.getSelection();
+      if (s && lastRangeRef.current) {
+        s.removeAllRanges();
+        s.addRange(lastRangeRef.current);
+      }
+    };
+
+    const placeCaretAtEnd = () => {
+      const el = editorRef.current;
+      if (!el) return;
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      r.collapse(false);
+      const s = window.getSelection();
+      if (!s) return;
+      s.removeAllRanges();
+      s.addRange(r);
+      lastRangeRef.current = r;
+    };
 
     const recomputeCounts = () => {
       const text = editorRef.current?.innerText ?? "";
@@ -96,23 +173,65 @@ const DocumentEditor = memo(
       setCharCount(text.length);
     };
 
-    const handleInput = async () => {
-      const newHtml = editorRef.current?.innerHTML ?? "";
-      setHtml(newHtml);
-      recomputeCounts();
-      onContentChange(tab.id, newHtml);
+    // only reset on file switch
+    useEffect(() => {
+      const next = tab.file.content || "<p>Start typing...</p>";
+      setHTML(next);
+      requestAnimationFrame(placeCaretAtEnd);
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    }, [tab.file.id]);
 
-      if (!window.lastSaveTime || Date.now() - window.lastSaveTime > 8000) {
-        window.lastSaveTime = Date.now();
-        await handleSave(newHtml);
+    // accept external updates for same file but do not clobber local typing
+    useEffect(() => {
+      if (!editorRef.current) return;
+      if (isLocalEditRef.current) {
+        isLocalEditRef.current = false;
+        return;
       }
+      const incoming = tab.file.content;
+      if (
+        typeof incoming === "string" &&
+        incoming !== editorRef.current.innerHTML
+      ) {
+        saveSelection();
+        setHTML(incoming);
+        restoreSelection();
+      }
+    }, [tab.file.content]);
+
+    useEffect(() => {
+      return () => {
+        if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+      };
+    }, []);
+
+    const scheduleSave = (content: string) => {
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = window.setTimeout(() => {
+        handleSave(content);
+      }, 1000);
     };
 
     const handleSave = async (content: string) => {
+      try {
+        setSaveStatus("saving");
+        await saveToBackend(tab.id, content);
+        setSaveStatus("saved");
+        window.setTimeout(() => setSaveStatus("idle"), 1500);
+      } catch (err) {
+        console.error("Save failed:", err);
+        setSaveStatus("error");
+      }
+    };
+
+    const handleInput = () => {
+      if (!editorRef.current) return;
+      isLocalEditRef.current = true;
+      const html = editorRef.current.innerHTML;
+      onContentChange(tab.id, html);
+      recomputeCounts();
       setSaveStatus("saving");
-      await saveToBackend(tab.id, content);
-      setSaveStatus("saved");
-      setTimeout(() => setSaveStatus("idle"), 2000);
+      scheduleSave(html);
     };
 
     const exec = (command: string) => {
@@ -120,7 +239,6 @@ const DocumentEditor = memo(
       handleInput();
     };
 
-    /* ---------------- Highlight → Show Popup Button (top-right of selection) ---------------- */
     const handleTextSelection = () => {
       const selection = window.getSelection();
       if (!selection || selection.isCollapsed) {
@@ -128,22 +246,18 @@ const DocumentEditor = memo(
         lastRangeRef.current = null;
         return;
       }
-
       const selectedText = selection.toString().trim();
       if (!selectedText) {
         setRephrasePrompt(null);
         lastRangeRef.current = null;
         return;
       }
-
       const range = selection.getRangeAt(0);
       lastRangeRef.current = range.cloneRange();
 
-      const rectList = range.getClientRects();
+      const rects = range.getClientRects();
       const anchorRect =
-        rectList && rectList.length > 0
-          ? rectList[rectList.length - 1] // right-most line of selection
-          : range.getBoundingClientRect();
+        rects && rects.length > 0 ? rects[rects.length - 1] : range.getBoundingClientRect();
 
       const wrapper = wrapperRef.current;
       if (!wrapper) return;
@@ -151,14 +265,11 @@ const DocumentEditor = memo(
 
       const offsetRight = 10;
       const offsetUp = 50;
-
-      // viewport -> wrapper-relative
       let x = anchorRect.right - parentRect.left + offsetRight;
       let y = anchorRect.top - parentRect.top - offsetUp;
 
-      // clamp within wrapper
-      const approxWidth = 96;  // ~ button width
-      const approxHeight = 34; // ~ button height
+      const approxWidth = 96;
+      const approxHeight = 34;
       const maxX = parentRect.width - approxWidth - 8;
       const maxY = parentRect.height - approxHeight - 8;
       x = Math.max(8, Math.min(x, maxX));
@@ -169,21 +280,16 @@ const DocumentEditor = memo(
 
     const handleConfirmRephrase = async () => {
       if (!rephrasePrompt) return;
-
       const rephrased = await rephraseText(rephrasePrompt.text);
       if (!rephrased) {
         setRephrasePrompt(null);
         return;
       }
 
-      // Use the preserved range if current selection is gone
       const selection = window.getSelection();
       let range: Range | null = null;
-      if (selection && selection.rangeCount > 0) {
-        range = selection.getRangeAt(0);
-      } else if (lastRangeRef.current) {
-        range = lastRangeRef.current;
-      }
+      if (selection && selection.rangeCount > 0) range = selection.getRangeAt(0);
+      else if (lastRangeRef.current) range = lastRangeRef.current;
 
       if (range) {
         range.deleteContents();
@@ -195,7 +301,6 @@ const DocumentEditor = memo(
       handleInput();
     };
 
-    // Hide popup if user clicks elsewhere and collapses selection
     const handleMouseDown = () => {
       if (window.getSelection()?.isCollapsed) {
         setRephrasePrompt(null);
@@ -203,11 +308,23 @@ const DocumentEditor = memo(
       }
     };
 
+    const handleSelectionChange = () => {
+      saveSelection();
+    };
+
     return (
       <div className="h-full flex flex-col relative">
         {/* Header */}
         <div className="flex items-center justify-between p-3 bg-app-sand/30 border-b border-app-sand">
           <h3 className="font-medium text-app-navy">{tab.file.name}</h3>
+          <div className="text-xs text-app-navy/70">
+            {wordCount} words • {charCount} chars •{" "}
+            {saveStatus === "saving"
+              ? "Saving…"
+              : saveStatus === "saved"
+              ? "Saved"
+              : ""}
+          </div>
         </div>
 
         {/* Toolbar */}
@@ -227,20 +344,22 @@ const DocumentEditor = memo(
           </Button>
         </div>
 
-        {/* Editor wrapper (positioned ancestor) */}
-        <div className="flex-1 p-4 relative" ref={wrapperRef}>
+        {/* Editor area */}
+        <div className="flex-1 p-4" ref={wrapperRef}>
           <div
+            key={tab.file.id}
             ref={editorRef}
             contentEditable
             suppressContentEditableWarning
             spellCheck
             onInput={handleInput}
+            onKeyUp={handleSelectionChange}
+            onBlur={handleSelectionChange}
             onMouseDown={handleMouseDown}
             onMouseUp={handleTextSelection}
-            className="h-full min-h-[300px] bg-white border-[3px] border-app-sand rounded-lg p-8 outline-none focus:ring-2 focus:ring-app-gold/40"
+            className="h-full min-h-[300px] bg-white border border-app-sand rounded-lg p-6 outline-none focus:ring-2 focus:ring-app-gold/40"
+            style={{ direction: "ltr", unicodeBidi: "plaintext" }}
           />
-
-          {/* Translucent single-button popup */}
           {rephrasePrompt && (
             <button
               onClick={handleConfirmRephrase}
@@ -248,14 +367,14 @@ const DocumentEditor = memo(
                 position: "absolute",
                 top: rephrasePrompt.y,
                 left: rephrasePrompt.x,
-                background: "rgba(8, 36, 52, 0.65)", // translucent navy
+                background: "rgba(8, 36, 52, 0.65)",
                 color: "white",
                 border: "1px solid rgba(255,255,255,0.2)",
                 borderRadius: "9999px",
                 padding: "6px 10px",
                 fontSize: "12px",
                 boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-                zIndex: 1000,
+                zIndex: 20,
                 cursor: "pointer",
                 backdropFilter: "blur(4px)",
                 WebkitBackdropFilter: "blur(4px)",
@@ -266,23 +385,38 @@ const DocumentEditor = memo(
             </button>
           )}
         </div>
-
-        {/* Footer */}
-        <div className="flex justify-between items-center text-sm text-app-navy/60 px-4 py-2 border-t bg-app-sand/20">
-          <div className="flex gap-4">
-            <span>Words: {wordCount}</span>
-            <span className="opacity-40">•</span>
-            <span>Characters: {charCount}</span>
-          </div>
-          <div>
-            {saveStatus === "saving" && <span> Saving...</span>}
-            {saveStatus === "saved" && <span className="text-green-600">Saved</span>}
-          </div>
-        </div>
       </div>
     );
   }
 );
+
+
+/* ---------------- Content Switcher ---------------- */
+function FileContentView({
+  tab,
+  onContentChange,
+}: {
+  tab: WorkspaceTab;
+  onContentChange: (tabId: string, content: string) => void;
+}) {
+  const ext = getExt(tab.file);
+
+  if (ext === "pdf") {
+    const url = tab.file.publicUrl || buildPublicUrl(tab.file.path);
+    return <PdfView url={url} title={tab.file.name} />;
+  }
+
+  if (ext === "html" || ext === "htm") {
+    const url = tab.file.publicUrl || buildPublicUrl(tab.file.path);
+    return <HtmlView url={url} title={tab.file.name} />;
+  }
+
+  if (ext === "txt" || ext === "md" || tab.file.type === "document" || tab.file.type === "quote" || tab.file.type === "context") {
+    return <DocumentEditor tab={tab} onContentChange={onContentChange} />;
+  }
+
+  return <ReadonlyView file={tab.file} />;
+}
 
 /* ---------------- Main Workspace ---------------- */
 const TabbedWorkspace: React.FC<TabbedWorkspaceProps> = ({
@@ -314,7 +448,7 @@ const TabbedWorkspace: React.FC<TabbedWorkspaceProps> = ({
       {/* Content */}
       <div className="flex-1 overflow-hidden">
         {activeTab ? (
-          <DocumentEditor key={activeTab.id} tab={activeTab} onContentChange={onContentChange} />
+          <FileContentView tab={activeTab} onContentChange={onContentChange} />
         ) : (
           <div className="h-full flex items-center justify-center text-app-navy/50">
             <div className="text-center">
