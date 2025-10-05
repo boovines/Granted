@@ -43,7 +43,7 @@ export default function App() {
       // Clear the URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
       
-      // Hide landing page and show main app
+      // Hide landing page and show main app immediately
       setShowLandingPage(false);
       
       // Show welcome message after a brief delay

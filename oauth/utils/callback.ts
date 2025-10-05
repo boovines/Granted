@@ -31,8 +31,7 @@ export function handleOAuthCallback(): Promise<void> {
     authService.handleCallback(callbackData)
       .then((session) => {
         // Session is now stored in localStorage by authService
-        // Redirect to main app
-        window.location.href = '/'
+        // Don't redirect here - let App.tsx handle the OAuth parameters
         resolve()
       })
       .catch(reject)
