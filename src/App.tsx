@@ -8,6 +8,7 @@ import AssistantChat from './components/AssistantChat';
 import { LoginButton, initializeOAuth } from '../oauth/integration/vite';
 import { UserProfile } from '../oauth/components/UserProfile';
 import AuthDebug from '../oauth/components/AuthDebug';
+import LandingPage from '../landing/Landing Page Design/src/components/LandingPage';
 
 interface ChatMessage {
   id: string;
@@ -24,6 +25,8 @@ interface ChatMessage {
 }
 
 export default function App() {
+  const [showLandingPage, setShowLandingPage] = useState(true);
+  
   // Initialize OAuth
   useEffect(() => {
     initializeOAuth();
@@ -39,6 +42,9 @@ export default function App() {
     if (code && state) {
       // Clear the URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // Hide landing page and show main app
+      setShowLandingPage(false);
       
       // Show welcome message after a brief delay
       setTimeout(() => {
@@ -465,6 +471,26 @@ export default function App() {
       }
     });
   }, []);
+
+  // Navigation handlers for landing page
+  const handleNavigateToLogin = () => {
+    // This will be handled by the OAuth flow in the landing page
+    setShowLandingPage(false);
+  };
+
+  const handleNavigateToApp = () => {
+    setShowLandingPage(false);
+  };
+
+  // Show landing page by default
+  if (showLandingPage) {
+    return (
+      <LandingPage 
+        onNavigateToLogin={handleNavigateToLogin}
+        onNavigateToApp={handleNavigateToApp}
+      />
+    );
+  }
 
   return (
     <div className="h-screen w-full bg-app-navy overflow-hidden">
