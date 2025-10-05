@@ -1,5 +1,5 @@
 """
-Configuration module for Aryn AI DocParse API integration.
+Configuration module for Aryn AI DocParse API.
 """
 import os
 from typing import Optional
@@ -20,41 +20,26 @@ except ImportError:
 
 
 class ArynConfig:
-    """Configuration class for Aryn AI API settings."""
+    """Configuration class for Aryn AI DocParse API."""
     
-    def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None, region: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None):
         """
         Initialize Aryn configuration.
         
         Args:
             api_key: Aryn API key. If None, will try to get from environment variable ARYN_API_KEY
-            base_url: Base URL for Aryn API. If None, uses default Aryn API URL
-            region: Aryn region (US or EU). If None, uses default or ARYN_REGION env var
         """
         self.api_key = api_key or os.getenv('ARYN_API_KEY')
-        self.base_url = base_url or os.getenv('ARYN_BASE_URL') or "https://api.aryn.ai"
-        self.region = region or os.getenv('ARYN_REGION')
         
         if not self.api_key:
             raise ValueError(
                 "Aryn API key is required. Please:\n"
                 "1. Set ARYN_API_KEY environment variable\n"
-                "2. Create a .env file with ARYN_API_KEY=your_key\n"
+                "2. Create a .env file with ARYN_API_KEY\n"
                 "3. Pass api_key parameter to ArynConfig\n"
-                "Get your API key from: https://www.aryn.ai/get-started"
+                "Get your API key from https://docs.aryn.ai/"
             )
     
-    def get_headers(self) -> dict:
-        """Get headers for API requests."""
-        return {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-    
-    def get_parse_url(self) -> str:
-        """Get URL for document parsing endpoint."""
-        return f"{self.base_url}/v1/parse"
-    
-    def get_query_url(self) -> str:
-        """Get URL for document querying endpoint."""
-        return f"{self.base_url}/v1/query"
+    def get_api_key(self) -> str:
+        """Get Aryn API key."""
+        return self.api_key

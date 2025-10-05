@@ -7,6 +7,7 @@ interface ChatRequest {
   workspace_id?: string;
   chat_id?: string;
   context_files?: string[]; // File IDs for context
+  use_rag?: boolean; // Whether to use RAG for context
 }
 
 interface ChatResponse {
@@ -20,9 +21,42 @@ interface ChatResponse {
  */
 export async function sendChatMessage(request: ChatRequest): Promise<ChatResponse> {
   try {
-    // For now, we'll use a simple fetch to your backend
-    // You'll need to update this URL to match your backend
-    const backendUrl = 'http://localhost:8000'; // Adjust this to your backend URL
+    const backendUrl = 'http://localhost:8001';
+    
+    // If we have context files and RAG is enabled, get RAG context first
+    let ragContext = '';
+    if (request.use_rag && request.context_files && request.context_files.length > 0) {
+      try {
+        const ragResponse = await fetch(`${backendUrl}/get_rag_context`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            document_ids: request.context_files,
+            workspace_id: request.workspace_id || '550e8400-e29b-41d4-a716-446655440000',
+            query: request.message,
+            limit: 20
+          }),
+        });
+
+        if (ragResponse.ok) {
+          const ragData = await ragResponse.json();
+          if (ragData.success && ragData.context) {
+            ragContext = ragData.context;
+          }
+        }
+      } catch (ragError) {
+        console.warn('RAG context retrieval failed:', ragError);
+        // Continue without RAG context
+      }
+    }
+
+    // Build the message with RAG context if available
+    let finalMessage = request.message;
+    if (ragContext) {
+      finalMessage = `Context from documents:\n\n${ragContext}\n\nUser question: ${request.message}`;
+    }
     
     const response = await fetch(`${backendUrl}/chat/query`, {
       method: 'POST',
@@ -30,9 +64,9 @@ export async function sendChatMessage(request: ChatRequest): Promise<ChatRespons
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        workspace_id: request.workspace_id || '550e8400-e29b-41d4-a716-446655440000', // Default test workspace
+        workspace_id: request.workspace_id || '550e8400-e29b-41d4-a716-446655440000',
         chat_id: request.chat_id || `chat-${Date.now()}`,
-        message: request.message,
+        message: finalMessage,
         context_files: request.context_files || []
       }),
     });
@@ -45,7 +79,7 @@ export async function sendChatMessage(request: ChatRequest): Promise<ChatRespons
     
     return {
       success: true,
-      response: data.response || data.message || 'No response received'
+      response: data.answer || data.response || data.message || 'No response received'
     };
 
   } catch (error) {
@@ -65,12 +99,16 @@ export async function sendChatMessage(request: ChatRequest): Promise<ChatRespons
  */
 export async function testBackendConnection(): Promise<boolean> {
   try {
-    const backendUrl = 'http://localhost:8000';
+    const backendUrl = 'http://localhost:8001';
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
     const response = await fetch(`${backendUrl}/health`, {
       method: 'GET',
-      timeout: 5000
+      signal: controller.signal
     });
     
+    clearTimeout(timeoutId);
     return response.ok;
   } catch (error) {
     console.warn('Backend not available:', error);

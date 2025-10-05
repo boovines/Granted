@@ -68,6 +68,7 @@ interface ExplorerProps {
     fileId: string,
     targetCategory: 'Documents' | 'Sources' | 'Context'
   ) => void;
+  onPDFProcess?: (file: File) => Promise<void>;
   className?: string;
 }
 
@@ -319,6 +320,7 @@ const Explorer = ({
   onFileAction,
   onAddFile,
   onFileMoveToCategory,
+  onPDFProcess,
   className = '',
 }: ExplorerProps) => {
   const [expandedFolders, setExpandedFolders] = useState(
@@ -457,6 +459,15 @@ const Explorer = ({
       const loading = toast.loading(`Uploading ${file.name}...`);
       try {
         const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+        
+        // For PDF files in Sources category, use the PDF processing pipeline
+        if (extension === 'pdf' && category === 'Sources' && onPDFProcess) {
+          toast.dismiss(loading);
+          await onPDFProcess(file);
+          continue;
+        }
+
+        // For other files, use the standard upload process
         const filePath = `${userId}/${category}/${Date.now()}_${file.name}`;
 
         // Upload to storage

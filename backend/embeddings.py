@@ -3,6 +3,7 @@ Embedding utilities for generating vector embeddings.
 """
 import openai
 import os
+import re
 from typing import List, Union
 from dotenv import load_dotenv
 
@@ -100,3 +101,49 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]
             break
     
     return chunks
+
+
+def clean_text_for_embedding(text: str) -> str:
+    """
+    Clean text for better embedding generation.
+    
+    Args:
+        text: Raw text to clean
+        
+    Returns:
+        Cleaned text
+    """
+    if not text:
+        return ""
+    
+    # Remove excessive whitespace
+    text = re.sub(r'\s+', ' ', text)
+    
+    # Remove special characters that might interfere with embeddings
+    text = re.sub(r'[^\w\s\.\,\!\?\;\:\-\(\)\[\]\"\'\/]', '', text)
+    
+    # Remove multiple consecutive punctuation
+    text = re.sub(r'([\.\,\!\?\;\:])\1+', r'\1', text)
+    
+    return text.strip()
+
+
+def extract_text_from_parsed_element(element: dict) -> str:
+    """
+    Extract clean text from a parsed document element.
+    
+    Args:
+        element: Parsed document element from Aryn AI
+        
+    Returns:
+        Cleaned text content
+    """
+    # Get text representation
+    text = element.get("text_representation", "")
+    
+    if not text:
+        # Try alternative text fields
+        text = element.get("text", "") or element.get("content", "")
+    
+    # Clean the text
+    return clean_text_for_embedding(text)
