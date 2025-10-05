@@ -14,6 +14,7 @@ import AuthDebug from '../oauth/components/AuthDebug';
 
 import { useSupabaseExplorerFiles } from './hooks/useSupabaseExplorerFiles';
 import { supabase } from './config/supabaseClient';
+import { sendChatMessage } from './utils/chatApi';
 
 /* ================= Chat model ================= */
 interface ChatMessage {
@@ -410,17 +411,19 @@ Cite data sources or prior project outcomes when used. Prefer public datasets an
     };
     setMessages((prev) => [...prev, userMessage]);
 
-    setTimeout(() => {
-      const replies = [
-        'Based on your research context, I can help you develop that thesis statement further.',
-        "I've analyzed the documents you've shared. Here are some key insights that could strengthen your proposal...",
-        'Your literature review covers important ground. I notice some gaps that could be addressed with additional sources.',
-        "The methodology you've outlined aligns well with your research questions. Consider these refinements...",
-      ];
+    try {
+      // Send the message to the backend
+      const response = await sendChatMessage({
+        message: content,
+        workspace_id: '550e8400-e29b-41d4-a716-446655440000', // Default test workspace
+        chat_id: `chat-${Date.now()}`,
+        context_files: contextFiles.map(f => f.id)
+      });
+
       const assistantMessage: ChatMessage = {
         id: `msg-${Date.now()}-assistant`,
         role: 'assistant',
-        content: replies[Math.floor(Math.random() * replies.length)],
+        content: response.response,
         timestamp: new Date(),
         citations:
           contextFiles.length > 0
@@ -435,7 +438,25 @@ Cite data sources or prior project outcomes when used. Prefer public datasets an
             : undefined,
       };
       setMessages((prev) => [...prev, assistantMessage]);
-    }, 1200);
+
+      if (!response.success) {
+        toast.error('Chat response may be limited. Check backend connection.');
+      }
+
+    } catch (error) {
+      console.error('Error sending chat message:', error);
+      
+      // Fallback to a simple response if there's an error
+      const errorMessage: ChatMessage = {
+        id: `msg-${Date.now()}-assistant`,
+        role: 'assistant',
+        content: `I apologize, but I encountered an error processing your request. Please try again or check if the backend server is running. Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      
+      toast.error('Failed to send message. Check console for details.');
+    }
   }, []);
 
   const handleCitationClick = useCallback(
