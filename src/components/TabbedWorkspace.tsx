@@ -127,15 +127,17 @@ const DocumentEditor = memo(
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
     const [rephrasePrompt, setRephrasePrompt] = useState<{ x: number; y: number; text: string } | null>(null);
 
-    // Reset editor content whenever the file changes
-    useEffect(() => {
-      const next = tab.file.content || "<p>Start typing...</p>";
-      setHtml(next);
-      if (editorRef.current) editorRef.current.innerHTML = next;
-      recomputeCounts();
-      // clear any pending autosave from previous file
-      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
-    }, [tab.file.id, tab.file.content]);
+// AFTER
+useEffect(() => {
+  const next = tab.file.content || "<p>Start typing...</p>";
+  setHtml(next);
+  if (editorRef.current && editorRef.current.innerHTML !== next) {
+    editorRef.current.innerHTML = next; // only on file switch
+  }
+  recomputeCounts();
+  if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+}, [tab.file.id]); // drop tab.file.content
+
 
     useEffect(() => {
       return () => {
