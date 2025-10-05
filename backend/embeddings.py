@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Initialize OpenAI client
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def embed_text(text: str) -> List[float]:
     """
@@ -26,11 +26,11 @@ def embed_text(text: str) -> List[float]:
         raise ValueError("Text cannot be empty")
     
     try:
-        response = openai.Embedding.create(
+        response = openai_client.embeddings.create(
             input=text.strip(),
             model="text-embedding-ada-002"
         )
-        return response.data[0]["embedding"]
+        return response.data[0].embedding
     except Exception as e:
         raise Exception(f"Failed to generate embedding: {str(e)}")
 
@@ -54,11 +54,11 @@ def embed_texts(texts: List[str]) -> List[List[float]]:
         raise ValueError("No valid texts to embed")
     
     try:
-        response = openai.Embedding.create(
+        response = openai_client.embeddings.create(
             input=valid_texts,
             model="text-embedding-ada-002"
         )
-        return [item["embedding"] for item in response.data]
+        return [item.embedding for item in response.data]
     except Exception as e:
         raise Exception(f"Failed to generate embeddings: {str(e)}")
 

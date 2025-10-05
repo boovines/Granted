@@ -29,7 +29,7 @@ app.add_middleware(
 )
 
 # Initialize OpenAI client
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Pydantic models
 class QueryRequest(BaseModel):
@@ -73,13 +73,13 @@ async def query_chat(request: QueryRequest):
         )
         
         # Call OpenAI API
-        response = openai.ChatCompletion.create(
+        response = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=request.max_tokens
         )
         
-        answer = response.choices[0].message["content"]
+        answer = response.choices[0].message.content
         
         # Store the assistant's response in chat memory
         supabase = get_supabase()
@@ -179,14 +179,14 @@ async def get_rules(workspace_id: str):
 async def health_check():
     """Detailed health check."""
     try:
-        # Test database connection
+        # Test database connection with a table that exists
         supabase = get_supabase()
-        supabase.table("rules").select("id").limit(1).execute()
+        supabase.table("documents").select("id").limit(1).execute()
         
         return {
             "status": "healthy",
             "database": "connected",
-            "openai": "configured" if openai.api_key else "not_configured"
+            "openai": "configured" if openai_client.api_key else "not_configured"
         }
     except Exception as e:
         return {

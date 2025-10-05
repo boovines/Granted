@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { border-color: #4CAF50; background-color: #f9f9f9; }
+        .error { border-color: #f44336; background-color: #ffebee; }
+        .pending { border-color: #ff9800; background-color: #fff3e0; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .response {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Chatbot Connection Test</h1>
+        <p>This page tests the connection between your frontend and backend chatbot system.</p>
+
+        <div class="test-section pending" id="backend-test">
+            <h3>1. Backend Health Check</h3>
+            <p>Testing if the backend server is running...</p>
+            <button onclick="testBackendHealth()">Test Backend Health</button>
+            <div class="response" id="backend-response"></div>
+        </div>
+
+        <div class="test-section pending" id="chat-test">
+            <h3>2. Chat API Test</h3>
+            <p>Testing the chat API with a sample message...</p>
+            <button onclick="testChatAPI()">Send Test Message</button>
+            <div class="response" id="chat-response"></div>
+        </div>
+
+        <div class="test-section pending" id="rules-test">
+            <h3>3. Grant Proposal Rules Test</h3>
+            <p>Testing if the hardcoded grant proposal rules are working...</p>
+            <button onclick="testGrantRules()">Test Grant Rules</button>
+            <div class="response" id="rules-response"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Test Results Summary</h3>
+            <div id="summary">
+                <p>Run the tests above to see results...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:8000';
+        
+        async function testBackendHealth() {
+            const section = document.getElementById('backend-test');
+            const response = document.getElementById('backend-response');
+            
+            section.className = 'test-section pending';
+            response.textContent = 'Testing...';
+            
+            try {
+                const res = await fetch(`${BACKEND_URL}/health`);
+                if (res.ok) {
+                    section.className = 'test-section success';
+                    response.textContent = '✅ Backend is running and healthy!';
+                    updateSummary('backend', true);
+                } else {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+            } catch (error) {
+                section.className = 'test-section error';
+                response.textContent = `❌ Backend health check failed: ${error.message}`;
+                updateSummary('backend', false);
+            }
+        }
+        
+        async function testChatAPI() {
+            const section = document.getElementById('chat-test');
+            const response = document.getElementById('chat-response');
+            
+            section.className = 'test-section pending';
+            response.textContent = 'Sending test message...';
+            
+            try {
+                const testMessage = {
+                    workspace_id: '550e8400-e29b-41d4-a716-446655440000',
+                    chat_id: 'test-chat-123',
+                    message: 'Hello, can you help me with a grant proposal?'
+                };
+                
+                const res = await fetch(`${BACKEND_URL}/chat/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testMessage)
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    section.className = 'test-section success';
+                    response.textContent = `✅ Chat API working!\n\nResponse: ${data.response || data.message || 'No response content'}`;
+                    updateSummary('chat', true);
+                } else {
+                    throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+                }
+            } catch (error) {
+                section.className = 'test-section error';
+                response.textContent = `❌ Chat API failed: ${error.message}`;
+                updateSummary('chat', false);
+            }
+        }
+        
+        async function testGrantRules() {
+            const section = document.getElementById('rules-test');
+            const response = document.getElementById('rules-response');
+            
+            section.className = 'test-section pending';
+            response.textContent = 'Testing grant proposal rules...';
+            
+            try {
+                const testMessage = {
+                    workspace_id: '550e8400-e29b-41d4-a716-446655440000',
+                    chat_id: 'test-rules-123',
+                    message: 'Help me write the executive summary for the GreenFuture Alliance grant proposal'
+                };
+                
+                const res = await fetch(`${BACKEND_URL}/chat/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testMessage)
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    const responseText = data.response || data.message || '';
+                    
+                    // Check if response contains grant proposal keywords
+                    const hasGrantKeywords = responseText.toLowerCase().includes('greenfuture') || 
+                                           responseText.toLowerCase().includes('grant') ||
+                                           responseText.toLowerCase().includes('executive summary') ||
+                                           responseText.toLowerCase().includes('sub-saharan africa');
+                    
+                    section.className = hasGrantKeywords ? 'test-section success' : 'test-section error';
+                    response.textContent = `${hasGrantKeywords ? '✅' : '❌'} Grant rules ${hasGrantKeywords ? 'working' : 'not detected'}!\n\nResponse: ${responseText}`;
+                    updateSummary('rules', hasGrantKeywords);
+                } else {
+                    throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+                }
+            } catch (error) {
+                section.className = 'test-section error';
+                response.textContent = `❌ Grant rules test failed: ${error.message}`;
+                updateSummary('rules', false);
+            }
+        }
+        
+        function updateSummary(test, success) {
+            const summary = document.getElementById('summary');
+            const results = JSON.parse(localStorage.getItem('testResults') || '{}');
+            results[test] = success;
+            localStorage.setItem('testResults', JSON.stringify(results));
+            
+            const totalTests = Object.keys(results).length;
+            const passedTests = Object.values(results).filter(Boolean).length;
+            
+            if (totalTests === 3) {
+                const allPassed = passedTests === 3;
+                summary.innerHTML = `
+                    <div class="${allPassed ? 'success' : 'error'}" style="padding: 10px; border-radius: 4px;">
+                        <strong>${allPassed ? '🎉 All tests passed!' : '⚠️ Some tests failed'}</strong><br>
+                        Results: ${passedTests}/${totalTests} tests passed<br>
+                        ${allPassed ? 'Your chatbot system is ready to use!' : 'Please check the failed tests above.'}
+                    </div>
+                `;
+            }
+        }
+        
+        // Auto-run backend health check on page load
+        window.onload = function() {
+            setTimeout(testBackendHealth, 1000);
+        };
+    </script>
+</body>
+</html>
