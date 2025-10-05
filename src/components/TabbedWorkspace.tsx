@@ -42,9 +42,7 @@ const SimpleTab: React.FC<{
   <div
     onClick={() => onTabSelect(tab.id)}
     className={`flex items-center gap-2 px-3 py-2 border-r border-app-sand/50 cursor-pointer transition-all ${
-      tab.isActive
-        ? "bg-app-navy text-white"
-        : "bg-app-sand hover:bg-app-sand/70 text-app-navy"
+      tab.isActive ? "bg-app-navy text-white" : "bg-app-sand hover:bg-app-sand/70 text-app-navy"
     }`}
   >
     <FileText className="w-3 h-3" />
@@ -123,25 +121,26 @@ const DocumentEditor = memo(
     const lastRangeRef = useRef<Range | null>(null);
     const saveTimerRef = useRef<number | null>(null);
 
-    const [html, setHtml] = useState(tab.file.content || "<p>Start typing...</p>");
+    const [html, setHtml] = useState<string>(tab.file.content || "<p>Start typing...</p>");
     const [wordCount, setWordCount] = useState(0);
     const [charCount, setCharCount] = useState(0);
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-    const [rephrasePrompt, setRephrasePrompt] = useState<{
-      x: number;
-      y: number;
-      text: string;
-    } | null>(null);
+    const [rephrasePrompt, setRephrasePrompt] = useState<{ x: number; y: number; text: string } | null>(null);
+
+    // Reset editor content whenever the file changes
+    useEffect(() => {
+      const next = tab.file.content || "<p>Start typing...</p>";
+      setHtml(next);
+      if (editorRef.current) editorRef.current.innerHTML = next;
+      recomputeCounts();
+      // clear any pending autosave from previous file
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    }, [tab.file.id, tab.file.content]);
 
     useEffect(() => {
-      const el = editorRef.current;
-      if (el) el.innerHTML = html;
-      recomputeCounts();
-      handleSave(html);
       return () => {
         if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
       };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const recomputeCounts = () => {
@@ -201,8 +200,7 @@ const DocumentEditor = memo(
       lastRangeRef.current = range.cloneRange();
 
       const rects = range.getClientRects();
-      const anchorRect =
-        rects && rects.length > 0 ? rects[rects.length - 1] : range.getBoundingClientRect();
+      const anchorRect = rects && rects.length > 0 ? rects[rects.length - 1] : range.getBoundingClientRect();
 
       const wrapper = wrapperRef.current;
       if (!wrapper) return;
@@ -255,6 +253,9 @@ const DocumentEditor = memo(
         {/* Header */}
         <div className="flex items-center justify-between p-3 bg-app-sand/30 border-b border-app-sand">
           <h3 className="font-medium text-app-navy">{tab.file.name}</h3>
+          <div className="text-xs text-app-navy/70">
+            {wordCount} words • {charCount} chars • {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : ""}
+          </div>
         </div>
 
         {/* Toolbar */}
@@ -277,6 +278,7 @@ const DocumentEditor = memo(
         {/* Editor area */}
         <div className="flex-1 p-4" ref={wrapperRef}>
           <div
+            key={tab.file.id} /* force DOM remount per file without typing key into props */
             ref={editorRef}
             contentEditable
             suppressContentEditableWarning
@@ -287,7 +289,6 @@ const DocumentEditor = memo(
             className="h-full min-h-[300px] bg-white border border-app-sand rounded-lg p-6 outline-none focus:ring-2 focus:ring-app-gold/40"
           />
 
-          {/* Translucent single-button popup */}
           {rephrasePrompt && (
             <button
               onClick={handleConfirmRephrase}
@@ -338,11 +339,10 @@ function FileContentView({
     return <HtmlView url={url} title={tab.file.name} />;
   }
 
-  if (ext === "txt" || ext === "md" || tab.file.type === "document" || tab.file.type === "quote") {
+  if (ext === "txt" || ext === "md" || tab.file.type === "document" || tab.file.type === "quote" || tab.file.type === "context") {
     return <DocumentEditor tab={tab} onContentChange={onContentChange} />;
   }
 
-  // Fallback for docx or unknown
   return <ReadonlyView file={tab.file} />;
 }
 

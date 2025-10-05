@@ -84,18 +84,39 @@ export default function App() {
     },
   ]);
 
-  /* ----- Local Rules (typable) ----- */
   const [localRules, setLocalRules] = useState<ExplorerFile[]>([
     {
       id: 'rule-1',
       name: 'Research Rules.md',
       type: 'context',
       category: 'Context',
-      content:
-        '# Research Rules & Guidelines\n\n' +
-        '## Writing Standards\n- Use clear, concise language\n- Academic tone\n- Follow APA\n\n' +
-        '## Formatting\n- Double-spaced\n- 12pt Times New Roman\n- 1-inch margins\n',
-      lastModified: new Date('2024-01-08'),
+      content: `
+# Research Rules & Guidelines
+
+## Purpose
+These rules define how to write grant proposals for GreenFuture Alliance. Write for global reviewers in clear and concise English. Aim for persuasion through impact, not technical detail.
+
+## Project Context
+Proposals target the Global Energy Impact Fund. The current initiative is a solar microgrid program in Sub-Saharan Africa that expands renewable energy access in underserved rural communities.
+
+## Required Structure
+Use five sections in this exact order and keep the total length between 500 and 700 words.
+Executive Summary. State the goal, the target region, and the exact funding amount requested. In one short paragraph, show the long term benefits for people and the environment.
+Project Rationale. Explain the problem of limited, unreliable, or costly electricity and the opportunity that distributed solar presents. Anchor claims in accessible data or prior outcomes from credible sources such as IEA or UNDP.
+Implementation Plan. Provide a timeline with clear milestones from site selection and permitting to installation, commissioning, and community training. Name local and international partners. Describe how communities will be involved in planning, jobs, and ownership.
+Expected Impact. Present measurable outcomes. Social outcomes include households electrified and people trained. Economic outcomes include small business productivity and energy cost relief. Environmental outcomes include annual carbon reductions in tons of CO2. Explain how monitoring and evaluation will track these metrics over time.
+Budget Overview. Offer a transparent, high level allocation that links every line to an outcome. Typical categories include infrastructure, logistics, community training, operations and maintenance, and monitoring and evaluation. Mention co-funding and local contributions when relevant.
+
+## Tone and Style
+Write in a professional and impact driven voice. Avoid jargon and acronyms or define them once if required. Keep sentences short and active. Prioritize clarity and scalability.
+
+## Measurability and Sustainability
+Support claims with numbers, credible sources, or evidence from prior projects. Show how local technicians, supply chains, and governance will keep the microgrids running without ongoing foreign aid. Explain revenue models and maintenance plans that match local capacity.
+
+## Citations
+Cite data sources or prior project outcomes when used. Prefer public datasets and internal monitoring reports. Keep citations brief and practical inside the text.
+`,
+      lastModified: new Date(),
       path: '/Context/Research Rules.md',
       extension: 'md',
     },
