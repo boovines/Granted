@@ -10,6 +10,7 @@ import { UserProfile } from '../oauth/components/UserProfile';
 import AuthDebug from '../oauth/components/AuthDebug';
 import LandingPage from '../landing/Landing Page Design/src/components/LandingPage';
 import { useSupabaseExplorerFiles } from './hooks/useSupabaseExplorerFiles';
+import { usePDFHandler } from './hooks/usePDFHandler';
 import { sendChatMessage } from './utils/chatApi';
 
 /* ================= Chat model ================= */
@@ -55,6 +56,12 @@ export default function App() {
   // Live Supabase Sources
   const { files: supaSources, loading: supaLoading, refresh } =
     useSupabaseExplorerFiles(DEMO_USER_ID);
+
+  // PDF Handler for processing uploaded documents
+  const { processPDF, getRAGContext, isProcessing, processingStatus } = usePDFHandler({
+    workspaceId: '550e8400-e29b-41d4-a716-446655440000',
+    userId: DEMO_USER_ID
+  });
 
   // Local Documents and Context
   const [localFiles, setLocalFiles] = useState<ExplorerFile[]>([
@@ -235,6 +242,24 @@ export default function App() {
     }
   };
 
+  const handlePDFProcess = useCallback(async (file: File) => {
+    try {
+      const result = await processPDF(file);
+      if (result.success) {
+        refresh(); // Reload sources to show the new file
+        toast.success(`PDF processed successfully: ${file.name}`);
+        if (result.needsParsing) {
+          toast.info('Document is being parsed and embedded for AI context');
+        }
+      } else {
+        toast.error(`Failed to process PDF: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('PDF processing error:', error);
+      toast.error(`Error processing PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }, [processPDF, refresh]);
+
   const handleAddFile = useCallback((options: FileCreationOptions) => {
     const { category, action, fileType } = options;
 
@@ -333,11 +358,20 @@ export default function App() {
     setMessages(prev => [...prev, userMessage]);
 
     try {
+      // Check if any context files are PDFs that need document IDs for RAG
+      const pdfContextFiles = contextFiles.filter(f => f.extension === 'pdf' && f.category === 'Sources');
+      const documentIds = pdfContextFiles.map(f => {
+        // Extract document ID from the file metadata or use a mapping
+        // For now, we'll use the file ID as document ID (this should be improved)
+        return f.id;
+      });
+
       const response = await sendChatMessage({
         message: content,
         workspace_id: '550e8400-e29b-41d4-a716-446655440000',
         chat_id: `chat-${Date.now()}`,
-        context_files: contextFiles.map(f => f.id)
+        context_files: documentIds,
+        use_rag: documentIds.length > 0
       });
 
       const assistantMessage: ChatMessage = {
@@ -429,6 +463,12 @@ export default function App() {
             Granted: Academic Writing IDE
           </h1>
           {supaLoading ? <div className="w-4 h-4 border-2 border-app-navy border-t-transparent rounded-full animate-spin" /> : null}
+          {isProcessing && processingStatus ? (
+            <div className="flex items-center space-x-2 text-sm text-app-navy">
+              <div className="w-3 h-3 border-2 border-app-navy border-t-transparent rounded-full animate-spin" />
+              <span>{processingStatus}</span>
+            </div>
+          ) : null}
         </div>
         <div className="flex items-center space-x-3 transition-all duration-300">
           <LoginButton className="bg-app-navy text-app-sand hover:bg-app-navy/90" />
@@ -446,6 +486,7 @@ export default function App() {
             onFileAction={handleFileAction}
             onAddFile={handleAddFile}
             onFileMoveToCategory={handleFileMoveToCategory}
+            onPDFProcess={handlePDFProcess}
             className="h-full"
           />
         </ResizablePanel>
