@@ -11,6 +11,9 @@ import AssistantChat from './components/AssistantChat';
 import { LoginButton, initializeOAuth } from '../oauth/integration/vite';
 import { UserProfile } from '../oauth/components/UserProfile';
 import AuthDebug from '../oauth/components/AuthDebug';
+import { Button } from './components/ui/button';
+import { FolderOpen, Award } from 'lucide-react';
+import Grants from './components/Grants';
 
 import { useSupabaseExplorerFiles } from './hooks/useSupabaseExplorerFiles';
 import { supabase } from './config/supabaseClient';
@@ -111,6 +114,7 @@ export default function App() {
   const [tabs, setTabs] = useState<WorkspaceTab[]>([]);
   const [selectedFileId, setSelectedFileId] = useState<string>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [currentPage, setCurrentPage] = useState<'explorer' | 'grants'>('grants');
 
   /* ================= Keyboard shortcuts ================= */
   useEffect(() => {
@@ -193,9 +197,35 @@ export default function App() {
       if (action === 'delete') {
         if (file.category === 'Sources') {
           try {
-            await supabase.storage.from('documents').remove([file.path]);
-          } catch {}
-          await supabase.from('sources').delete().eq('id', file.id);
+            console.log('Deleting file from storage:', file.path);
+            const { error: storageError } = await supabase.storage.from('documents').remove([file.path]);
+            if (storageError) {
+              console.error('Storage delete error:', storageError);
+              toast.error(`Failed to delete file from storage: ${storageError.message}`);
+              return;
+            }
+            console.log('File deleted from storage successfully');
+          } catch (error) {
+            console.error('Storage delete exception:', error);
+            toast.error('Failed to delete file from storage');
+            return;
+          }
+          
+          try {
+            console.log('Deleting database entry for file ID:', file.id);
+            const { error: dbError } = await supabase.from('sources').delete().eq('id', file.id);
+            if (dbError) {
+              console.error('Database delete error:', dbError);
+              toast.error(`Failed to delete database entry: ${dbError.message}`);
+              return;
+            }
+            console.log('Database entry deleted successfully');
+          } catch (error) {
+            console.error('Database delete exception:', error);
+            toast.error('Failed to delete database entry');
+            return;
+          }
+          
           await refresh();
           setTabs((current) => current.filter((t) => t.file.id !== file.id));
           toast.success(`Deleted ${file.name}`);
@@ -279,27 +309,27 @@ export default function App() {
 
   const handleAddFile = useCallback(
     (options: FileCreationOptions) => {
-      const { category, action, fileType } = options;
+    const { category, action, fileType } = options;
 
-      if (action === 'upload') {
+    if (action === 'upload') {
         // Explorer already uploaded to Supabase. Just refresh.
         refresh();
-        return;
-      }
+      return;
+    }
 
-      if (action === 'create' && fileType) {
+    if (action === 'create' && fileType) {
         const base = category.slice(0, -1);
-        const extension = fileType;
+      const extension = fileType;
         const fileName = `New ${base}.${extension}`;
 
-        const newFile: ExplorerFile = {
+      const newFile: ExplorerFile = {
           id: `local-${Date.now()}`,
-          name: fileName,
-          type: getFileTypeMapping(category),
-          category,
+        name: fileName,
+        type: getFileTypeMapping(category),
+        category,
           content: getDefaultContent(base, extension),
-          lastModified: new Date(),
-          path: `/${category}/${fileName}`,
+        lastModified: new Date(),
+        path: `/${category}/${fileName}`,
           extension,
         };
 
@@ -312,8 +342,8 @@ export default function App() {
           return;
         }
 
-        handleFileSelect(newFile);
-
+      handleFileSelect(newFile);
+      
         const labels: Record<string, string> = {
           md: 'Markdown',
           txt: 'Text',
@@ -356,7 +386,7 @@ export default function App() {
 
   const handleContentChange = useCallback((tabId: string, content: string) => {
     let targetFileId: string | null = null;
-
+    
     setTabs((current) => {
       const target = current.find((t) => t.id === tabId);
       if (target) targetFileId = target.file.id;
@@ -405,9 +435,9 @@ export default function App() {
           contextFiles.length > 0
             ? [
                 {
-                  id: 'citation-1',
-                  text: 'Referenced content from your sources',
-                  sourceFile: contextFiles[0],
+          id: 'citation-1',
+          text: 'Referenced content from your sources',
+          sourceFile: contextFiles[0],
                   position: { page: Math.floor(Math.random() * 20) + 1, offset: Math.floor(Math.random() * 1000) },
                 },
               ]
@@ -419,8 +449,8 @@ export default function App() {
 
   const handleCitationClick = useCallback(
     (citation: any) => {
-      handleFileSelect(citation.sourceFile);
-      toast.info(`Opened ${citation.sourceFile.name} with citation highlighted`);
+    handleFileSelect(citation.sourceFile);
+    toast.info(`Opened ${citation.sourceFile.name} with citation highlighted`);
     },
     [handleFileSelect]
   );
@@ -470,14 +500,17 @@ export default function App() {
             Granted: Academic Writing IDE
           </h1>
         </div>
+        
+        
         <div className="flex items-center space-x-3">
           <LoginButton className="bg-app-navy text-app-sand hover:bg-app-navy/90" />
           <UserProfile />
         </div>
       </div>
 
-      <ResizablePanelGroup direction="horizontal" className="h-[calc(100vh-3rem)]">
-        {/* Explorer */}
+      {currentPage === 'explorer' ? (
+        <ResizablePanelGroup direction="horizontal" className="h-[calc(100vh-3rem)]">
+          {/* Explorer */}
         <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
           <Explorer
             files={files}
@@ -487,13 +520,17 @@ export default function App() {
             onFileAction={handleFileAction}
             onAddFile={handleAddFile}
             onFileMoveToCategory={handleFileMoveToCategory}
+            onNavigateToGrants={() => {
+              console.log('Navigating to grants from Explorer');
+              setCurrentPage('grants');
+            }}
             className="h-full"
           />
         </ResizablePanel>
 
         <ResizableHandle className="w-1 bg-app-sand hover:bg-app-gold transition-colors" />
 
-        {/* Workspace */}
+          {/* Workspace */}
         <ResizablePanel defaultSize={50} minSize={30}>
           <TabbedWorkspace
             tabs={tabs}
@@ -508,7 +545,7 @@ export default function App() {
 
         <ResizableHandle className="w-1 bg-app-sand hover:bg-app-gold transition-colors" />
 
-        {/* Assistant */}
+          {/* Assistant */}
         <ResizablePanel defaultSize={30} minSize={25} maxSize={40}>
           <AssistantChat
             files={files}
@@ -520,8 +557,34 @@ export default function App() {
           />
         </ResizablePanel>
       </ResizablePanelGroup>
+      ) : (
+        <ResizablePanelGroup direction="horizontal" className="h-[calc(100vh-3rem)]">
+          {/* Grants */}
+          <ResizablePanel defaultSize={60} minSize={40} maxSize={80}>
+            <Grants 
+              className="h-full"
+              onNavigateToHome={() => setCurrentPage('explorer')}
+            />
+          </ResizablePanel>
 
-      <Toaster
+          <ResizableHandle className="w-1 bg-app-sand hover:bg-app-gold transition-colors" />
+
+          {/* Assistant */}
+          <ResizablePanel defaultSize={40} minSize={20} maxSize={60}>
+            <AssistantChat
+              files={files}
+              messages={messages}
+              onSendMessage={handleSendMessage}
+              onCitationClick={handleCitationClick}
+              onSaveQuote={handleSaveQuote}
+              className="h-full"
+            />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      )}
+
+
+      <Toaster 
         position="bottom-right"
         toastOptions={{
           style: {
