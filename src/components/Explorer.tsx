@@ -1,3 +1,4 @@
+// Explorer.tsx
 import React, { useState } from 'react';
 import {
   ChevronRight,
@@ -48,7 +49,7 @@ export interface ExplorerFile {
   lastModified: Date;
   path: string;
   extension?: string;
-  publicUrl?: string; // ⬅️ add this
+  publicUrl?: string;
 }
 
 export interface FileCreationOptions {
@@ -325,14 +326,53 @@ const Explorer = ({
   );
   const [isLoading, setIsLoading] = useState(false);
 
+  // url helpers
+  const isPdfSource = (file: ExplorerFile) => {
+    const name = file.name?.toLowerCase() || '';
+    const ext = file.extension?.toLowerCase() || '';
+    return file.category === 'Sources' && (ext === 'pdf' || name.endsWith('.pdf'));
+  };
+
+  const getSupabaseFileUrl = async (path: string) => {
+    // public url attempt
+    const { data: pub } = supabase.storage.from('documents').getPublicUrl(path);
+    if (pub?.publicUrl) return pub.publicUrl;
+
+    // signed url fallback
+    const { data: signed, error } = await supabase.storage
+      .from('documents')
+      .createSignedUrl(path, 3600);
+    if (error) throw error;
+    return signed.signedUrl;
+  };
+
+  const handleSelect = (file: ExplorerFile) => {
+    if (!isPdfSource(file)) {
+      onFileSelect(file);
+      return;
+    }
+    (async () => {
+      try {
+        if (!file.path) {
+          toast.error('Missing file path for Supabase object');
+          onFileSelect(file);
+          return;
+        }
+        const url = file.publicUrl || (await getSupabaseFileUrl(file.path));
+        onFileSelect({ ...file, publicUrl: url });
+      } catch (e: any) {
+        console.error('URL resolution error:', e);
+        toast.error('Could not resolve PDF URL');
+        onFileSelect(file);
+      }
+    })();
+  };
+
   // Check bucket by listing inside it
   React.useEffect(() => {
     (async () => {
       try {
-        const { data, error } = await supabase.storage
-          .from('documents')
-          .list('', { limit: 1 });
-
+        const { data, error } = await supabase.storage.from('documents').list('', { limit: 1 });
         if (error) {
           const msg = String(error.message || '').toLowerCase();
           if (msg.includes('not found') || msg.includes('does not exist')) {
@@ -392,10 +432,7 @@ const Explorer = ({
   };
 
   const ensureBucketExists = async () => {
-    const { data, error } = await supabase.storage
-      .from('documents')
-      .list('', { limit: 1 });
-
+    const { data, error } = await supabase.storage.from('documents').list('', { limit: 1 });
     if (error) {
       const msg = String(error.message || '').toLowerCase();
       if (msg.includes('not found') || msg.includes('does not exist')) {
@@ -423,7 +460,7 @@ const Explorer = ({
         const filePath = `${userId}/${category}/${Date.now()}_${file.name}`;
 
         // Upload to storage
-        const { data: up, error: upErr } = await supabase.storage
+        const { error: upErr } = await supabase.storage
           .from('documents')
           .upload(filePath, file, { cacheControl: '3600', upsert: false });
 
@@ -441,17 +478,14 @@ const Explorer = ({
         console.log('Public URL:', publicUrl);
 
         // Insert metadata
-        const { data: db, error: dbErr } = await supabase
-          .from('sources')
-          .insert({
-            user_id: userId,
-            file_name: file.name,
-            file_path: filePath,
-            file_type: extension,
-            uploaded_time: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-          })
-          .select();
+        const { error: dbErr } = await supabase.from('sources').insert({
+          user_id: userId,
+          file_name: file.name,
+          file_path: filePath,
+          file_type: extension,
+          uploaded_time: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        });
 
         if (dbErr) {
           console.error('DB insert error:', dbErr);
@@ -547,7 +581,7 @@ const Explorer = ({
             isExpanded={expandedFolders.has('Documents')}
             selectedFileId={selectedFileId}
             onToggleFolder={toggleFolder}
-            onFileSelect={onFileSelect}
+            onFileSelect={handleSelect}
             onFileAction={onFileAction}
             onAddFile={onAddFile}
             onFileMoveToCategory={onFileMoveToCategory}
@@ -561,7 +595,7 @@ const Explorer = ({
             isExpanded={expandedFolders.has('Sources')}
             selectedFileId={selectedFileId}
             onToggleFolder={toggleFolder}
-            onFileSelect={onFileSelect}
+            onFileSelect={handleSelect}
             onFileAction={onFileAction}
             onAddFile={onAddFile}
             onFileMoveToCategory={onFileMoveToCategory}
@@ -575,7 +609,7 @@ const Explorer = ({
             isExpanded={expandedFolders.has('Context')}
             selectedFileId={selectedFileId}
             onToggleFolder={toggleFolder}
-            onFileSelect={onFileSelect}
+            onFileSelect={handleSelect}
             onFileAction={onFileAction}
             onAddFile={onAddFile}
             onFileMoveToCategory={onFileMoveToCategory}

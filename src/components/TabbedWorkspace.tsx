@@ -121,50 +121,27 @@ const DocumentEditor = memo(
     const lastRangeRef = useRef<Range | null>(null);
     const saveTimerRef = useRef<number | null>(null);
 
+    const [html, setHtml] = useState<string>(tab.file.content || "<p>Start typing...</p>");
     const [wordCount, setWordCount] = useState(0);
     const [charCount, setCharCount] = useState(0);
-    const [saveStatus, setSaveStatus] =
-      useState<"idle" | "saving" | "saved" | "error">("idle");
-    const [rephrasePrompt, setRephrasePrompt] = useState<{
-      x: number;
-      y: number;
-      text: string;
-    } | null>(null);
+    const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+    const [rephrasePrompt, setRephrasePrompt] = useState<{ x: number; y: number; text: string } | null>(null);
 
-    // mark local edits so prop echoes do not stomp caret
-    const isLocalEditRef = useRef(false);
-
-    const setHTML = (html: string) => {
-      if (!editorRef.current) return;
-      editorRef.current.innerHTML = html;
+    // Reset editor content whenever the file changes
+    useEffect(() => {
+      const next = tab.file.content || "<p>Start typing...</p>";
+      setHtml(next);
+      if (editorRef.current) editorRef.current.innerHTML = next;
       recomputeCounts();
-    };
+      // clear any pending autosave from previous file
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    }, [tab.file.id, tab.file.content]);
 
-    const saveSelection = () => {
-      const s = window.getSelection();
-      if (s && s.rangeCount > 0) lastRangeRef.current = s.getRangeAt(0);
-    };
-
-    const restoreSelection = () => {
-      const s = window.getSelection();
-      if (s && lastRangeRef.current) {
-        s.removeAllRanges();
-        s.addRange(lastRangeRef.current);
-      }
-    };
-
-    const placeCaretAtEnd = () => {
-      const el = editorRef.current;
-      if (!el) return;
-      const r = document.createRange();
-      r.selectNodeContents(el);
-      r.collapse(false);
-      const s = window.getSelection();
-      if (!s) return;
-      s.removeAllRanges();
-      s.addRange(r);
-      lastRangeRef.current = r;
-    };
+    useEffect(() => {
+      return () => {
+        if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+      };
+    }, []);
 
     const recomputeCounts = () => {
       const text = editorRef.current?.innerText ?? "";
@@ -173,43 +150,20 @@ const DocumentEditor = memo(
       setCharCount(text.length);
     };
 
-    // only reset on file switch
-    useEffect(() => {
-      const next = tab.file.content || "<p>Start typing...</p>";
-      setHTML(next);
-      requestAnimationFrame(placeCaretAtEnd);
-      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
-    }, [tab.file.id]);
-
-    // accept external updates for same file but do not clobber local typing
-    useEffect(() => {
-      if (!editorRef.current) return;
-      if (isLocalEditRef.current) {
-        isLocalEditRef.current = false;
-        return;
-      }
-      const incoming = tab.file.content;
-      if (
-        typeof incoming === "string" &&
-        incoming !== editorRef.current.innerHTML
-      ) {
-        saveSelection();
-        setHTML(incoming);
-        restoreSelection();
-      }
-    }, [tab.file.content]);
-
-    useEffect(() => {
-      return () => {
-        if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
-      };
-    }, []);
-
     const scheduleSave = (content: string) => {
       if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
       saveTimerRef.current = window.setTimeout(() => {
         handleSave(content);
       }, 1000);
+    };
+
+    const handleInput = () => {
+      const newHtml = editorRef.current?.innerHTML ?? "";
+      setHtml(newHtml);
+      recomputeCounts();
+      onContentChange(tab.id, newHtml);
+      setSaveStatus("saving");
+      scheduleSave(newHtml);
     };
 
     const handleSave = async (content: string) => {
@@ -222,16 +176,6 @@ const DocumentEditor = memo(
         console.error("Save failed:", err);
         setSaveStatus("error");
       }
-    };
-
-    const handleInput = () => {
-      if (!editorRef.current) return;
-      isLocalEditRef.current = true;
-      const html = editorRef.current.innerHTML;
-      onContentChange(tab.id, html);
-      recomputeCounts();
-      setSaveStatus("saving");
-      scheduleSave(html);
     };
 
     const exec = (command: string) => {
@@ -256,8 +200,7 @@ const DocumentEditor = memo(
       lastRangeRef.current = range.cloneRange();
 
       const rects = range.getClientRects();
-      const anchorRect =
-        rects && rects.length > 0 ? rects[rects.length - 1] : range.getBoundingClientRect();
+      const anchorRect = rects && rects.length > 0 ? rects[rects.length - 1] : range.getBoundingClientRect();
 
       const wrapper = wrapperRef.current;
       if (!wrapper) return;
@@ -281,10 +224,7 @@ const DocumentEditor = memo(
     const handleConfirmRephrase = async () => {
       if (!rephrasePrompt) return;
       const rephrased = await rephraseText(rephrasePrompt.text);
-      if (!rephrased) {
-        setRephrasePrompt(null);
-        return;
-      }
+      if (!rephrased) return setRephrasePrompt(null);
 
       const selection = window.getSelection();
       let range: Range | null = null;
@@ -308,22 +248,13 @@ const DocumentEditor = memo(
       }
     };
 
-    const handleSelectionChange = () => {
-      saveSelection();
-    };
-
     return (
       <div className="h-full flex flex-col relative">
         {/* Header */}
         <div className="flex items-center justify-between p-3 bg-app-sand/30 border-b border-app-sand">
           <h3 className="font-medium text-app-navy">{tab.file.name}</h3>
           <div className="text-xs text-app-navy/70">
-            {wordCount} words • {charCount} chars •{" "}
-            {saveStatus === "saving"
-              ? "Saving…"
-              : saveStatus === "saved"
-              ? "Saved"
-              : ""}
+            {wordCount} words • {charCount} chars • {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : ""}
           </div>
         </div>
 
@@ -347,19 +278,17 @@ const DocumentEditor = memo(
         {/* Editor area */}
         <div className="flex-1 p-4" ref={wrapperRef}>
           <div
-            key={tab.file.id}
+            key={tab.file.id} /* force DOM remount per file without typing key into props */
             ref={editorRef}
             contentEditable
             suppressContentEditableWarning
             spellCheck
             onInput={handleInput}
-            onKeyUp={handleSelectionChange}
-            onBlur={handleSelectionChange}
             onMouseDown={handleMouseDown}
             onMouseUp={handleTextSelection}
             className="h-full min-h-[300px] bg-white border border-app-sand rounded-lg p-6 outline-none focus:ring-2 focus:ring-app-gold/40"
-            style={{ direction: "ltr", unicodeBidi: "plaintext" }}
           />
+
           {rephrasePrompt && (
             <button
               onClick={handleConfirmRephrase}
@@ -389,7 +318,6 @@ const DocumentEditor = memo(
     );
   }
 );
-
 
 /* ---------------- Content Switcher ---------------- */
 function FileContentView({
