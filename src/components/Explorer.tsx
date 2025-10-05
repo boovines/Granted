@@ -10,8 +10,6 @@ import {
   Upload,
   ChevronRight as ChevronRightSmall,
   GripVertical,
-  Home,
-  Award,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -69,7 +67,6 @@ interface ExplorerProps {
     fileId: string,
     targetCategory: 'Documents' | 'Sources' | 'Context'
   ) => void;
-  onNavigateToGrants?: () => void;
   className?: string;
 }
 
@@ -321,10 +318,8 @@ const Explorer = ({
   onFileAction,
   onAddFile,
   onFileMoveToCategory,
-  onNavigateToGrants,
   className = '',
 }: ExplorerProps) => {
-  console.log('Explorer component - onNavigateToGrants prop:', !!onNavigateToGrants);
   const [expandedFolders, setExpandedFolders] = useState(
     new Set(['Documents', 'Sources', 'Context'])
   );
@@ -540,24 +535,9 @@ const Explorer = ({
               <div className="w-4 h-4 border-2 border-app-gold border-t-transparent rounded-full animate-spin" />
             )}
           </div>
-          <div className="flex items-center gap-2">
-            {onNavigateToGrants && (
-              <Button
-                onClick={() => {
-                  console.log('Grants button clicked in Explorer');
-                  onNavigateToGrants();
-                }}
-                size="sm"
-                className="flex items-center gap-1 px-3 py-1 bg-app-gold hover:bg-app-gold/90 text-app-navy font-medium text-xs"
-              >
-                <Award className="w-3 h-3" />
-                Grants
-              </Button>
-            )}
-            <Button variant="ghost" size="sm" className="w-6 h-6 p-0 hover:bg-app-white/10">
-              <MoreHorizontal className="w-4 h-4 text-app-white/70" />
-            </Button>
-          </div>
+          <Button variant="ghost" size="sm" className="w-6 h-6 p-0 hover:bg-app-white/10">
+            <MoreHorizontal className="w-4 h-4 text-app-white/70" />
+          </Button>
         </div>
 
         <div className="space-y-1">
