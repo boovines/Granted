@@ -1,17 +1,14 @@
-// src/App.tsx
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from './components/ui/resizable';
 import { Toaster } from './components/ui/sonner';
-import { toast } from 'sonner';
-
+import { toast } from "sonner";
 import Explorer, { ExplorerFile, FileCreationOptions } from './components/Explorer';
 import TabbedWorkspace, { WorkspaceTab } from './components/TabbedWorkspace';
 import AssistantChat from './components/AssistantChat';
-
 import { LoginButton, initializeOAuth } from '../oauth/integration/vite';
 import { UserProfile } from '../oauth/components/UserProfile';
 import AuthDebug from '../oauth/components/AuthDebug';
-
+import LandingPage from '../landing/Landing Page Design/src/components/LandingPage';
 import { useSupabaseExplorerFiles } from './hooks/useSupabaseExplorerFiles';
 import { supabase } from './config/supabaseClient';
 import { sendChatMessage } from './utils/chatApi';
@@ -31,385 +28,374 @@ interface ChatMessage {
   }[];
 }
 
-/* ================= App ================= */
 export default function App() {
-  /* ----- OAuth init + welcome ----- */
+  const [showLandingPage, setShowLandingPage] = useState(true);
+  
+  // Initialize OAuth
   useEffect(() => {
     initializeOAuth();
   }, []);
+
+  // Check for successful OAuth callback and show welcome message
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const state = urlParams.get('state');
+    
+    // If we have OAuth parameters, we just came back from OAuth
     if (code && state) {
+      // Clear the URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
-      setTimeout(() => toast.success("Welcome! You're now signed in. 🎉", { duration: 4000 }), 800);
+      
+      // Hide landing page and show main app
+      setShowLandingPage(false);
+      
+      // Show welcome message after a brief delay
+      setTimeout(() => {
+        toast.success("Welcome! You're now signed in. 🎉", {
+          duration: 4000,
+        });
+      }, 1000);
     }
   }, []);
 
-  /* ----- Supabase sources (PDFs) ----- */
-  const USER_ID = 'demo-user-123';
-  const { files: remoteFiles, loading: filesLoading, refresh } = useSupabaseExplorerFiles(USER_ID);
-
-  /* ----- Local Documents (typable) – the “old” ones ----- */
-  const [localDocs, setLocalDocs] = useState<ExplorerFile[]>([
+  // Sample data
+  const [files, setFiles] = useState<ExplorerFile[]>([
     {
-      id: 'doc-1',
+      id: '1',
       name: 'Research Proposal Draft.md',
       type: 'document',
       category: 'Documents',
       content: '# Research Proposal\n\nIntroduction to the study...',
       lastModified: new Date('2024-01-15'),
       path: '/Documents/Research Proposal Draft.md',
-      extension: 'md',
+      extension: 'md'
     },
     {
-      id: 'doc-2',
+      id: '2',
       name: 'Literature Review.md',
       type: 'document',
       category: 'Documents',
       content: '# Literature Review\n\nRelevant studies include...',
       lastModified: new Date('2024-01-14'),
       path: '/Documents/Literature Review.md',
-      extension: 'md',
+      extension: 'md'
     },
     {
-      id: 'doc-quotes',
+      id: '3',
       name: 'Saved Quotes',
       type: 'quote',
       category: 'Documents',
       content: '',
       lastModified: new Date('2024-01-16'),
       path: '/Documents/Saved Quotes',
-      extension: 'md',
+      extension: 'md'
     },
-  ]);
-
-  const [localRules, setLocalRules] = useState<ExplorerFile[]>([
     {
-      id: 'rule-1',
+      id: '4',
+      name: 'Academic Paper - Smith et al.pdf',
+      type: 'source',
+      category: 'Sources',
+      content: 'PDF content would be extracted here...',
+      lastModified: new Date('2024-01-10'),
+      path: '/Sources/Academic Paper - Smith et al.pdf',
+      extension: 'pdf'
+    },
+    {
+      id: '5',
+      name: 'Web Article - Research Methods.html',
+      type: 'source',
+      category: 'Sources',
+      content: 'Web scraped content...',
+      lastModified: new Date('2024-01-12'),
+      path: '/Sources/Web Article - Research Methods.html',
+      extension: 'html'
+    },
+    {
+      id: '6',
       name: 'Research Rules.md',
       type: 'context',
       category: 'Context',
-      content: `
-# Research Rules & Guidelines
-
-## Purpose
-These rules define how to write grant proposals for GreenFuture Alliance. Write for global reviewers in clear and concise English. Aim for persuasion through impact, not technical detail.
-
-## Project Context
-Proposals target the Global Energy Impact Fund. The current initiative is a solar microgrid program in Sub-Saharan Africa that expands renewable energy access in underserved rural communities.
-
-## Required Structure
-Use five sections in this exact order and keep the total length between 500 and 700 words.
-Executive Summary. State the goal, the target region, and the exact funding amount requested. In one short paragraph, show the long term benefits for people and the environment.
-Project Rationale. Explain the problem of limited, unreliable, or costly electricity and the opportunity that distributed solar presents. Anchor claims in accessible data or prior outcomes from credible sources such as IEA or UNDP.
-Implementation Plan. Provide a timeline with clear milestones from site selection and permitting to installation, commissioning, and community training. Name local and international partners. Describe how communities will be involved in planning, jobs, and ownership.
-Expected Impact. Present measurable outcomes. Social outcomes include households electrified and people trained. Economic outcomes include small business productivity and energy cost relief. Environmental outcomes include annual carbon reductions in tons of CO2. Explain how monitoring and evaluation will track these metrics over time.
-Budget Overview. Offer a transparent, high level allocation that links every line to an outcome. Typical categories include infrastructure, logistics, community training, operations and maintenance, and monitoring and evaluation. Mention co-funding and local contributions when relevant.
-
-## Tone and Style
-Write in a professional and impact driven voice. Avoid jargon and acronyms or define them once if required. Keep sentences short and active. Prioritize clarity and scalability.
-
-## Measurability and Sustainability
-Support claims with numbers, credible sources, or evidence from prior projects. Show how local technicians, supply chains, and governance will keep the microgrids running without ongoing foreign aid. Explain revenue models and maintenance plans that match local capacity.
-
-## Citations
-Cite data sources or prior project outcomes when used. Prefer public datasets and internal monitoring reports. Keep citations brief and practical inside the text.
-`,
-      lastModified: new Date(),
+      content: '# Research Rules & Guidelines\n\n## Writing Standards\n- Use clear, concise language\n- Maintain academic tone throughout\n- Follow APA citation format\n- Include proper references for all claims\n\n## Content Requirements\n- Original research and analysis required\n- Minimum 50-80 pages for thesis\n- Include methodology section\n- Provide evidence-based conclusions\n\n## Formatting Guidelines\n- Double-spaced text\n- 12pt Times New Roman font\n- 1-inch margins on all sides\n- Page numbers in top-right corner\n\n## Review Process\n- Self-review before submission\n- Check for grammar and spelling\n- Verify all citations are complete\n- Ensure logical flow and structure',
+      lastModified: new Date('2024-01-08'),
       path: '/Context/Research Rules.md',
-      extension: 'md',
-    },
+      extension: 'md'
+    }
   ]);
 
-  /* ----- Combine: local docs + remote sources + local rules ----- */
-  const files: ExplorerFile[] = useMemo(() => {
-    const sourcesOnly = remoteFiles.filter((f) => f.category === 'Sources');
-    return [...localDocs, ...sourcesOnly, ...localRules];
-  }, [localDocs, remoteFiles, localRules]);
-
-  /* ----- Tabs and chat ----- */
   const [tabs, setTabs] = useState<WorkspaceTab[]>([]);
   const [selectedFileId, setSelectedFileId] = useState<string>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
-  /* ================= Keyboard shortcuts ================= */
+  // Keyboard shortcuts
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === '/') {
         e.preventDefault();
-        const chatInput = document.querySelector('textarea[placeholder*="Ask me anything"]') as HTMLTextAreaElement | null;
-        chatInput?.focus();
+        // Focus chat input
+        const chatInput = document.querySelector('textarea[placeholder*="Ask me anything"]') as HTMLTextAreaElement;
+        if (chatInput) {
+          chatInput.focus();
+        }
       }
+      
       if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
         e.preventDefault();
-        const btns = document.querySelectorAll('button');
-        for (const b of Array.from(btns)) {
-          if (b.textContent?.includes('@ Add Context')) {
-            (b as HTMLButtonElement).click();
+        // Open context picker by finding and clicking the button
+        const contextButtons = document.querySelectorAll('button');
+        for (const button of contextButtons) {
+          if (button.textContent?.includes('@ Add Context')) {
+            button.click();
             break;
           }
         }
       }
     };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  /* ================= Helpers ================= */
-  const getFileTypeMapping = (category: ExplorerFile['category']) =>
-    category === 'Documents' ? 'document' : category === 'Sources' ? 'source' : 'context';
+  // File operations
+  const handleFileSelect = useCallback((file: ExplorerFile) => {
+    setSelectedFileId(file.id);
+    
+    // Use functional update to avoid dependency on tabs state
+    setTabs(currentTabs => {
+      const existingTab = currentTabs.find(tab => tab.file.id === file.id);
+      
+      if (!existingTab) {
+        const newTab: WorkspaceTab = {
+          id: `tab-${file.id}`,
+          file,
+          isActive: true,
+          isDirty: false
+        };
+        
+        // Deactivate other tabs and add new one
+        return [
+          ...currentTabs.map(tab => ({ ...tab, isActive: false })),
+          newTab
+        ];
+      } else {
+        // Just activate existing tab
+        return currentTabs.map(tab => ({
+          ...tab,
+          isActive: tab.id === existingTab.id
+        }));
+      }
+    });
+  }, []);
+
+  const handleFileAction = useCallback((action: 'rename' | 'delete' | 'move', file: ExplorerFile) => {
+    switch (action) {
+      case 'rename':
+        // Mock rename functionality
+        toast.info(`Rename functionality for ${file.name} would be implemented here`);
+        break;
+      case 'delete':
+        setFiles(currentFiles => currentFiles.filter(f => f.id !== file.id));
+        setTabs(currentTabs => currentTabs.filter(tab => tab.file.id !== file.id));
+        toast.success(`Deleted ${file.name}`);
+        break;
+      case 'move':
+        toast.info(`Move functionality for ${file.name} would be implemented here`);
+        break;
+    }
+  }, []);
+
+  const handleFileMoveToCategory = useCallback((fileId: string, targetCategory: 'Documents' | 'Sources' | 'Context') => {
+    setFiles(currentFiles => {
+      const file = currentFiles.find(f => f.id === fileId);
+      if (!file) return currentFiles;
+
+      const oldCategory = file.category;
+      if (oldCategory === targetCategory) return currentFiles;
+
+      // Update file type based on target category
+      const getFileTypeFromCategory = (category: 'Documents' | 'Sources' | 'Context'): ExplorerFile['type'] => {
+        switch (category) {
+          case 'Documents':
+            return file.type === 'quote' ? 'quote' : 'document';
+          case 'Sources':
+            return 'source';
+          case 'Context':
+            return 'context';
+        }
+      };
+
+      const updatedFile: ExplorerFile = {
+        ...file,
+        category: targetCategory,
+        type: getFileTypeFromCategory(targetCategory),
+        path: `/${targetCategory}/${file.name}`,
+        lastModified: new Date()
+      };
+
+      // Update any open tabs with the updated file
+      setTabs(currentTabs => currentTabs.map(tab => 
+        tab.file.id === fileId 
+          ? { ...tab, file: updatedFile, isDirty: true }
+          : tab
+      ));
+
+      toast.success(`Moved "${file.name}" from ${oldCategory} to ${targetCategory}`);
+      
+      return currentFiles.map(f => f.id === fileId ? updatedFile : f);
+    });
+  }, []);
+
+  const getFileTypeMapping = (category: string) => {
+    switch (category) {
+      case 'Documents':
+        return 'document' as const;
+      case 'Sources':
+        return 'source' as const;
+      case 'Context':
+        return 'context' as const;
+      default:
+        return 'document' as const;
+    }
+  };
 
   const getDefaultContent = (fileType: string, extension: string) => {
     switch (extension) {
       case 'md':
         return `# New ${fileType}\n\nStart writing here...`;
       case 'txt':
+        return `New ${fileType}\n\nStart writing here...`;
       case 'rtf':
-      case 'docx':
         return `New ${fileType}\n\nStart writing here...`;
       case 'html':
         return `<!DOCTYPE html>\n<html>\n<head>\n  <title>New ${fileType}</title>\n</head>\n<body>\n  <h1>New ${fileType}</h1>\n  <p>Start writing here...</p>\n</body>\n</html>`;
+      case 'docx':
+        return `New ${fileType}\n\nStart writing here...`;
+      case 'pdf':
+        return 'PDF content would be processed here...';
       default:
         return '';
     }
   };
 
-  const isPdf = (f: ExplorerFile) => (f.extension || '').toLowerCase() === 'pdf';
+  const handleAddFile = useCallback((options: FileCreationOptions) => {
+    const { category, action, fileType } = options;
 
-  /* ================= File actions ================= */
-  const handleFileSelect = useCallback((file: ExplorerFile) => {
-    setSelectedFileId(file.id);
+    if (action === 'upload') {
+      // Mock file upload functionality
+      toast.info(`File upload functionality for ${category} would be implemented here`);
+      // In a real app, this would open a file picker dialog
+      return;
+    }
 
-    const ext = file.extension?.toLowerCase() || '';
-    const isEditable =
-      file.category === 'Documents' ||
-      (file.category === 'Context') ||
-      ['txt', 'md', 'rtf', 'docx', 'html'].includes(ext);
+    if (action === 'create' && fileType) {
+      const fileTypeDisplay = category.slice(0, -1); // Remove 's' from plural
+      const extension = fileType;
+      const fileName = `New ${fileTypeDisplay}.${extension}`;
 
-    const newTab: WorkspaceTab = {
-      id: `tab-${file.id}`,
-      file,
-      isActive: true,
-      isDirty: false,
-      isEditable,
-    };
+      const newFile: ExplorerFile = {
+        id: `file-${Date.now()}`,
+        name: fileName,
+        type: getFileTypeMapping(category),
+        category,
+        content: getDefaultContent(fileTypeDisplay, extension),
+        lastModified: new Date(),
+        path: `/${category}/${fileName}`,
+        extension
+      };
 
-    setTabs((current) => {
-      const existing = current.find((t) => t.file.id === file.id);
-      if (!existing) {
-        return [...current.map((t) => ({ ...t, isActive: false })), newTab];
-      }
-      return current.map((t) => ({ ...t, isActive: t.id === existing.id }));
-    });
-  }, []);
+      setFiles(currentFiles => [...currentFiles, newFile]);
+      handleFileSelect(newFile);
+      
+      // Show success message with file type
+      const fileTypeLabels: Record<string, string> = {
+        'md': 'Markdown',
+        'txt': 'Text',
+        'rtf': 'Rich Text',
+        'docx': 'Word Document',
+        'pdf': 'PDF',
+        'html': 'HTML'
+      };
+      
+      toast.success(`Created new ${fileTypeLabels[extension]} file in ${category}`);
+    }
+  }, [handleFileSelect]);
 
-  const handleFileAction = useCallback(
-    async (action: 'rename' | 'delete' | 'move', file: ExplorerFile) => {
-      if (action === 'rename') {
-        toast.info('Rename not wired yet');
-        return;
-      }
-
-      if (action === 'delete') {
-        if (file.category === 'Sources') {
-          try {
-            await supabase.storage.from('documents').remove([file.path]);
-          } catch {}
-          await supabase.from('sources').delete().eq('id', file.id);
-          await refresh();
-          setTabs((current) => current.filter((t) => t.file.id !== file.id));
-          toast.success(`Deleted ${file.name}`);
-        } else if (file.category === 'Documents') {
-          setLocalDocs((d) => d.filter((x) => x.id !== file.id));
-          setTabs((current) => current.filter((t) => t.file.id !== file.id));
-          toast.success(`Deleted ${file.name}`);
-        } else {
-          setLocalRules((r) => r.filter((x) => x.id !== file.id));
-          setTabs((current) => current.filter((t) => t.file.id !== file.id));
-          toast.success(`Deleted ${file.name}`);
-        }
-        return;
-      }
-
-      if (action === 'move') {
-        toast.info('Drag and drop between sections. Moving PDFs to Documents is not supported.');
-      }
-    },
-    [refresh]
-  );
-
-  const handleFileMoveToCategory = useCallback(
-    async (fileId: string, targetCategory: 'Documents' | 'Sources' | 'Context') => {
-      const all = files;
-      const file = all.find((f) => f.id === fileId);
-      if (!file || file.category === targetCategory) return;
-
-      // Do not allow moving PDFs into Documents
-      if (isPdf(file) && targetCategory === 'Documents') {
-        toast.error('Cannot move PDFs into Documents. Keep them in Sources.');
-        return;
-      }
-
-      if (file.category === 'Sources') {
-        // Remote source → move in storage + DB
-        const row = (await supabase.from('sources').select('*').eq('id', fileId).single()).data;
-        if (!row) {
-          toast.error('Could not load source record');
-          return;
-        }
-        const oldPath = row.file_path as string;
-        const parts = oldPath.split('/');
-        parts[1] = targetCategory; // userId/<cat>/...
-        const newPath = parts.join('/');
-
-        const { error: moveErr } = await supabase.storage.from('documents').move(oldPath, newPath);
-        if (moveErr) {
-          toast.error(`Storage move failed: ${moveErr.message}`);
-          return;
-        }
-
-        await supabase.from('sources').update({ file_path: newPath }).eq('id', fileId);
-        await refresh();
-        toast.success(`Moved to ${targetCategory}`);
-      } else {
-        // Local doc/rule → just update local state
-        const updater = (arr: ExplorerFile[]) =>
-          arr.map((f) => (f.id === fileId ? { ...f, category: targetCategory, path: `/${targetCategory}/${f.name}` } : f));
-
-        if (file.category === 'Documents') setLocalDocs((d) => updater(d));
-        if (file.category === 'Context') setLocalRules((r) => updater(r));
-        toast.success(`Moved to ${targetCategory}`);
-      }
-
-      // Mark any open tab dirty with the new category/path
-      setTabs((current) =>
-        current.map((t) =>
-          t.file.id === fileId
-            ? {
-                ...t,
-                file: { ...t.file, category: targetCategory, path: `/${targetCategory}/${t.file.name}` },
-                isDirty: true,
-              }
-            : t
-        )
-      );
-    },
-    [files, refresh]
-  );
-
-  const handleAddFile = useCallback(
-    (options: FileCreationOptions) => {
-      const { category, action, fileType } = options;
-
-      if (action === 'upload') {
-        // Explorer already uploaded to Supabase. Just refresh.
-        refresh();
-        return;
-      }
-
-      if (action === 'create' && fileType) {
-        const base = category.slice(0, -1);
-        const extension = fileType;
-        const fileName = `New ${base}.${extension}`;
-
-        const newFile: ExplorerFile = {
-          id: `local-${Date.now()}`,
-          name: fileName,
-          type: getFileTypeMapping(category),
-          category,
-          content: getDefaultContent(base, extension),
-          lastModified: new Date(),
-          path: `/${category}/${fileName}`,
-          extension,
-        };
-
-        if (category === 'Documents') {
-          setLocalDocs((d) => [...d, newFile]);
-        } else if (category === 'Context') {
-          setLocalRules((r) => [...r, newFile]);
-        } else {
-          toast.info('Create in Sources is disabled. Use Upload for PDFs.');
-          return;
-        }
-
-        handleFileSelect(newFile);
-
-        const labels: Record<string, string> = {
-          md: 'Markdown',
-          txt: 'Text',
-          rtf: 'Rich Text',
-          docx: 'Word Document',
-          pdf: 'PDF',
-          html: 'HTML',
-        };
-        toast.success(`Created new ${labels[extension] || extension.toUpperCase()} in ${category}`);
-      }
-    },
-    [handleFileSelect, refresh]
-  );
-
-  /* ================= Tabs ================= */
+  // Tab operations
   const handleTabClose = useCallback((tabId: string) => {
-    setTabs((current) => {
-      const tab = current.find((t) => t.id === tabId);
-      const remaining = current.filter((t) => t.id !== tabId);
-      if (tab?.isActive && remaining.length > 0) {
-        const next = remaining[remaining.length - 1];
-        return remaining.map((t) => ({ ...t, isActive: t.id === next.id }));
+    setTabs(currentTabs => {
+      const tab = currentTabs.find(t => t.id === tabId);
+      const remainingTabs = currentTabs.filter(t => t.id !== tabId);
+      
+      if (tab?.isActive && remainingTabs.length > 0) {
+        // Activate the next tab
+        const nextTab = remainingTabs[remainingTabs.length - 1];
+        return remainingTabs.map(t => ({
+          ...t,
+          isActive: t.id === nextTab.id
+        }));
       }
-      return remaining;
+      
+      return remainingTabs;
     });
   }, []);
 
   const handleTabSelect = useCallback((tabId: string) => {
-    setTabs((current) => current.map((t) => ({ ...t, isActive: t.id === tabId })));
+    setTabs(currentTabs => currentTabs.map(tab => ({
+      ...tab,
+      isActive: tab.id === tabId
+    })));
   }, []);
 
-  const handleTabReorder = useCallback((from: number, to: number) => {
-    setTabs((current) => {
-      const next = [...current];
-      const [moved] = next.splice(from, 1);
-      next.splice(to, 0, moved);
-      return next;
+  const handleTabReorder = useCallback((fromIndex: number, toIndex: number) => {
+    setTabs(currentTabs => {
+      const newTabs = [...currentTabs];
+      const [movedTab] = newTabs.splice(fromIndex, 1);
+      newTabs.splice(toIndex, 0, movedTab);
+      return newTabs;
     });
   }, []);
 
   const handleContentChange = useCallback((tabId: string, content: string) => {
+    // Get the file ID first to avoid dependency on tabs state
     let targetFileId: string | null = null;
-
-    setTabs((current) => {
-      const target = current.find((t) => t.id === tabId);
-      if (target) targetFileId = target.file.id;
-      return current.map((t) => (t.id === tabId ? { ...t, isDirty: true, file: { ...t.file, content } } : t));
+    
+    // Update tab content and mark as dirty
+    setTabs(currentTabs => {
+      const targetTab = currentTabs.find(tab => tab.id === tabId);
+      if (targetTab) {
+        targetFileId = targetTab.file.id;
+      }
+      
+      return currentTabs.map(tab => 
+        tab.id === tabId 
+          ? { ...tab, isDirty: true, file: { ...tab.file, content } }
+          : tab
+      );
     });
+    
+    // Update file content using functional update
+    if (targetFileId) {
+      setFiles(currentFiles => 
+        currentFiles.map(file =>
+          file.id === targetFileId
+            ? { ...file, content, lastModified: new Date() }
+            : file
+        )
+      );
+    }
+  }, []); // Remove dependencies to prevent recreation
 
-    if (!targetFileId) return;
-
-    // Update local docs or rules only
-    setLocalDocs((docs) =>
-      docs.some((f) => f.id === targetFileId)
-        ? docs.map((f) => (f.id === targetFileId ? { ...f, content, lastModified: new Date() } : f))
-        : docs
-    );
-    setLocalRules((rules) =>
-      rules.some((f) => f.id === targetFileId)
-        ? rules.map((f) => (f.id === targetFileId ? { ...f, content, lastModified: new Date() } : f))
-        : rules
-    );
-  }, []);
-
-  /* ================= Chat ================= */
+  // Assistant chat operations
   const handleSendMessage = useCallback(async (content: string, contextFiles: ExplorerFile[]) => {
     const userMessage: ChatMessage = {
       id: `msg-${Date.now()}-user`,
       role: 'user',
       content,
       timestamp: new Date(),
-      contextFiles: contextFiles.length > 0 ? contextFiles : undefined,
+      contextFiles: contextFiles.length > 0 ? contextFiles : undefined
     };
-    setMessages((prev) => [...prev, userMessage]);
+
+    setMessages(prev => [...prev, userMessage]);
 
     try {
       // Send the message to the backend
@@ -425,17 +411,12 @@ Cite data sources or prior project outcomes when used. Prefer public datasets an
         role: 'assistant',
         content: response.response,
         timestamp: new Date(),
-        citations:
-          contextFiles.length > 0
-            ? [
-                {
-                  id: 'citation-1',
-                  text: 'Referenced content from your sources',
-                  sourceFile: contextFiles[0],
-                  position: { page: Math.floor(Math.random() * 20) + 1, offset: Math.floor(Math.random() * 1000) },
-                },
-              ]
-            : undefined,
+        citations: contextFiles.length > 0 ? [{
+          id: 'citation-1',
+          text: 'Referenced content from your sources',
+          sourceFile: contextFiles[0],
+          position: { page: Math.floor(Math.random() * 20) + 1, offset: Math.floor(Math.random() * 1000) }
+        }] : undefined
       };
       setMessages((prev) => [...prev, assistantMessage]);
 
@@ -459,19 +440,19 @@ Cite data sources or prior project outcomes when used. Prefer public datasets an
     }
   }, []);
 
-  const handleCitationClick = useCallback(
-    (citation: any) => {
-      handleFileSelect(citation.sourceFile);
-      toast.info(`Opened ${citation.sourceFile.name} with citation highlighted`);
-    },
-    [handleFileSelect]
-  );
+  const handleCitationClick = useCallback((citation: any) => {
+    // Open the source file in a tab and highlight the citation
+    handleFileSelect(citation.sourceFile);
+    toast.info(`Opened ${citation.sourceFile.name} with citation highlighted`);
+  }, [handleFileSelect]);
 
-  const handleSaveQuote = useCallback((quote: string, sourceFile?: ExplorerFile) => {
-    setLocalDocs((current) => {
-      let quotes = current.find((f) => f.type === 'quote');
-      if (!quotes) {
-        quotes = {
+  const handleSaveQuote = useCallback((quote: string, sourceFile?: ExplorerFile, citation?: any) => {
+    setFiles(currentFiles => {
+      // Find or create the Quotes file
+      let quotesFile = currentFiles.find(f => f.type === 'quote');
+      
+      if (!quotesFile) {
+        quotesFile = {
           id: `quotes-${Date.now()}`,
           name: 'Saved Quotes',
           type: 'quote',
@@ -479,51 +460,79 @@ Cite data sources or prior project outcomes when used. Prefer public datasets an
           content: '',
           lastModified: new Date(),
           path: '/Documents/Saved Quotes',
-          extension: 'md',
+          extension: 'md'
         };
-        current = [...current, quotes];
       }
 
+      // Add the quote to the quotes file
       const timestamp = new Date().toISOString();
       const sourceInfo = sourceFile ? `\nSource: ${sourceFile.name}` : '';
-      const newEntry = `\n\n---\n**Saved ${timestamp}**\n\n"${quote}"${sourceInfo}\n`;
+      const newQuote = `\n\n---\n**Saved ${timestamp}**\n\n"${quote}"${sourceInfo}\n`;
+      
+      const updatedQuotesFile = {
+        ...quotesFile,
+        content: (quotesFile.content || '') + newQuote,
+        lastModified: new Date()
+      };
 
-      const updated = current.map((f) =>
-        f.id === quotes!.id ? { ...f, content: (f.content || '') + newEntry, lastModified: new Date() } : f
-      );
-
-      // update any open tab with quotes
-      setTabs((tabs) =>
-        tabs.map((t) => (t.file.id === quotes!.id ? { ...t, file: updated.find((f) => f.id === quotes!.id)! } : t))
-      );
+      // Update tab if open
+      setTabs(currentTabs => currentTabs.map(tab => 
+        tab.file.id === quotesFile!.id 
+          ? { ...tab, file: updatedQuotesFile, isDirty: true }
+          : tab
+      ));
 
       toast.success('Quote saved to Documents');
-      return updated;
+      
+      // If quotes file didn't exist, add it, otherwise update it
+      if (!currentFiles.find(f => f.type === 'quote')) {
+        return [...currentFiles, updatedQuotesFile];
+      } else {
+        return currentFiles.map(f => f.id === quotesFile!.id ? updatedQuotesFile : f);
+      }
     });
   }, []);
 
-  /* ================= Render ================= */
+  // Navigation handlers for landing page
+  const handleNavigateToLogin = () => {
+    // This will be handled by the OAuth flow in the landing page
+    setShowLandingPage(false);
+  };
+
+  const handleNavigateToApp = () => {
+    setShowLandingPage(false);
+  };
+
+  // Show landing page by default
+  if (showLandingPage) {
+    return (
+      <LandingPage 
+        onNavigateToLogin={handleNavigateToLogin}
+        onNavigateToApp={handleNavigateToApp}
+      />
+    );
+  }
+
   return (
     <div className="h-screen w-full bg-app-navy overflow-hidden">
-      {/* Header */}
-      <div className="h-16 bg-app-gold border-b border-app-sand/20 flex items-center justify-between px-4">
+      {/* Header with OAuth components */}
+      <div className="h-32 bg-app-gold border-b border-app-sand/20 flex items-center justify-between px-4">
         <div className="flex items-center space-x-4">
-          <h1 className="text-lg font-bold text-app-navy" style={{ fontSize: '1.5em' }}>
+          <h1 className="text-xl font-bold text-app-navy" style={{ fontSize: '1.5em', fontWeight: 'bold' }}>
             Granted: Academic Writing IDE
           </h1>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-3 transition-all duration-300">
           <LoginButton className="bg-app-navy text-app-sand hover:bg-app-navy/90" />
           <UserProfile />
         </div>
       </div>
-
-      <ResizablePanelGroup direction="horizontal" className="h-[calc(100vh-3rem)]">
-        {/* Explorer */}
+      
+      <ResizablePanelGroup direction="horizontal" className="h-[calc(100vh-8rem)]">
+        {/* Left Panel - Explorer */}
         <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
           <Explorer
             files={files}
-            // if you add a loading prop to Explorer, pass filesLoading here
             onFileSelect={handleFileSelect}
             selectedFileId={selectedFileId}
             onFileAction={handleFileAction}
@@ -533,10 +542,10 @@ Cite data sources or prior project outcomes when used. Prefer public datasets an
           />
         </ResizablePanel>
 
-        <ResizableHandle className="w-1 bg-app-sand hover:bg-app-gold transition-colors" />
+        <ResizableHandle className="w-3 bg-app-sand hover:bg-app-gold transition-colors" />
 
-        {/* Workspace */}
-        <ResizablePanel defaultSize={50} minSize={30}>
+        {/* Middle Panel - Tabbed Workspace */}
+        <ResizablePanel defaultSize={45} minSize={25}>
           <TabbedWorkspace
             tabs={tabs}
             onTabClose={handleTabClose}
@@ -548,10 +557,10 @@ Cite data sources or prior project outcomes when used. Prefer public datasets an
           />
         </ResizablePanel>
 
-        <ResizableHandle className="w-1 bg-app-sand hover:bg-app-gold transition-colors" />
+        <ResizableHandle className="w-3 bg-app-sand hover:bg-app-gold transition-colors" />
 
-        {/* Assistant */}
-        <ResizablePanel defaultSize={30} minSize={25} maxSize={40}>
+        {/* Right Panel - Assistant Chat */}
+        <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
           <AssistantChat
             files={files}
             messages={messages}
@@ -563,7 +572,7 @@ Cite data sources or prior project outcomes when used. Prefer public datasets an
         </ResizablePanel>
       </ResizablePanelGroup>
 
-      <Toaster
+      <Toaster 
         position="bottom-right"
         toastOptions={{
           style: {
@@ -573,7 +582,8 @@ Cite data sources or prior project outcomes when used. Prefer public datasets an
           },
         }}
       />
-
+      
+      {/* Debug component for development */}
       <AuthDebug />
     </div>
   );
